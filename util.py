@@ -48,7 +48,3 @@ def read_pdf(path, print_info=True):
 
 def flatten(t):
     return [item for sublist in t for item in sublist]
-
-
-def merge_paper(paper):
-    return ''.join(paper[:])
