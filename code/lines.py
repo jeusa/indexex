@@ -3,6 +3,7 @@ import re
 
 import util
 
+
 def make_lines_df(dicts):
 
     page_lines = []
