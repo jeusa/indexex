@@ -91,8 +91,7 @@ def remove_useless_lines(lines_df):
     return blines_df
 
 
-# Sort the lines into bins containing lines with similar start coordinates (x0)
-#df = lines_df.copy()
+# Sort the lines into bins containing lines with similar values for parameter by
 def group_lines(df, by):
     d = 4
     last = "last_" + by
