@@ -1,6 +1,14 @@
 import fitz
 import os
 
+
+page_size = (0,0)
+
+def set_page_size(dicts):
+    global page_size
+    page_size = (dicts[0]["width"], dicts[1]["height"])
+
+
 def list_files(directory, suffix='', recursive=True):
 
     if not directory.endswith(os.sep):
@@ -42,6 +50,8 @@ def read_pdf(path, print_info=True):
 
     if print_info:
         print("Finished reading", len(pdf_pages), "page(s)")
+
+    set_page_size(pdf_dicts)
 
     return pdf_pages, pdf_dicts
 

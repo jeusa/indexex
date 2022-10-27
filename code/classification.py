@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 import util
 import lines
 
+
 def cluster(lines_df, column, n_clusters):
 
     X = lines_df[column].to_numpy()
@@ -52,6 +53,109 @@ def generate_cluster_labels(lines_df, dicts, n_clusters_x0=2, remove_big_x0=True
         df.loc[(df["label_kmeans_0"]==l[0]) & (df["label_kmeans_1"]==l[1]), "label"] = l[2]
 
     return df
+
+
+def group_line_starts_ends(lines_df):
+    df = lines_df.copy()
+
+    bins_x0 = pd.DataFrame(columns=["x0", "lines", "last_x0", "count", "page"])
+    bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "count", "page"])
+
+    for p in df.groupby("page"):
+        b = lines.group_lines(p[1], "x0")
+        b["page"] = p[0]
+        bins_x0 = pd.concat([bins_x0, b])
+
+        c = lines.group_lines(p[1], "x1")
+        c["page"] = p[0]
+        bins_x1 = pd.concat([bins_x1, c])
+        bins_x1 =  bins_x1.sort_values(by=["page", "count"], ascending=[True, False])
+
+    x0_types = bins_x0.loc[bins_x0["count"]>=4].groupby("page").count().groupby("count").count()["x0"]
+    i = x0_types.argmax()
+    x0_n = x0_types.index[i] # how many types of line start coordinates (x0) -> 3 or 2
+
+    # keep only the x0_n relevant bins per page
+    bins_x0_rel = pd.DataFrame(columns=bins_x0.columns)
+    for p_no, p in bins_x0.groupby("page"):
+        #x = p.sort_values(by="count", ascending=False).iloc[0:x0_n].sort_values(by="last_x0")
+        x = p.sort_values(by="last_x0").iloc[0:x0_n]
+        #display(x)
+        bins_x0_rel = pd.concat([bins_x0_rel, x])
+
+    bins_x1_max = pd.DataFrame()
+    for s in bins_x1.groupby("page"):
+        bins_x1_max = pd.concat([bins_x1_max, s[1].iloc[0]], axis=1)
+    bins_x1_max = bins_x1_max.T # all lines that end by the right text border
+
+    return bins_x0_rel, bins_x1_max, x0_n
+
+
+def assign_line_labels(lines_df, bins_x0_df, bins_x1_df, x0_n):
+    df = lines_df.copy()
+    df["x0_type"] = -1
+    df["x1_type"] = -1
+
+    bins_x0 = bins_x0_df.copy()
+    bins_x1 = bins_x1_df.copy()
+
+    borders = []
+
+    # assign x0_type to lines
+    for p_no, p in bins_x0.groupby("page"):
+        for i in range(x0_n):
+            df.loc[p.iloc[i]["lines"], "x0_type"] = i
+
+        borders.append(calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no]))
+
+    # assign x1_type to lines
+    for p_no, p in df.groupby("page"):
+        max_x1 = bins_x1.loc[bins_x1["page"]==p_no]["lines"].values[0]
+
+        for index, row in p.iterrows():
+            x1_type = -1
+
+            if index in max_x1:
+                x1_type = 2 # line ends by the right text border
+            else:
+                l_x1 = row["x1"]
+                if l_x1 < borders[p_no-1][0] + 0.5*(borders[p_no-1][1] - borders[p_no-1][0]):
+                    x1_type = 0 # line ends before the first half of the text width
+                else:
+                    x1_type = 1 # line ends after the first half of the text width but before the border
+
+            df.loc[index, "x1_type"] = x1_type
+
+    # assign labels to lines based on x0_type and x1_type
+    df["label"] = "other"
+    for index, row in df.iterrows():
+        x0_t = row["x0_type"]
+        x1_t = row["x1_type"]
+
+        x0_start = 1
+        if x0_n == 2:
+            x0_start = 0
+
+        df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"
+        df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]==2), "label"] = "start"
+        df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]==2), "label"] = "middle"
+        df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
+
+    return df
+
+
+def calc_text_borders(bins_x0, bins_x1):
+    df_x0 = bins_x0.copy()
+    df_x1 = bins_x1.copy()
+
+    x0 = df_x0.iloc[0]["x0"]
+    if type(x0) is not list:
+        x0 = [x0]
+    x0 = sum(x0)/len(x0)
+    x1 = df_x1.iloc[0]["x1"]
+    x1 = sum(x1)/len(x1)
+
+    return (x0, x1)
 
 
 def improve_classification(lines_df):

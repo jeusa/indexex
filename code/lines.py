@@ -41,7 +41,7 @@ def merge_close_lines(lines_df, distance=4):
 
     df = lines_df.copy()
     df["dy"] = df["y0"].diff(periods=1).abs()
-    df["line_no"] = df["dy"].gt(4).cumsum()
+    df["line_no"] = df["dy"].gt(3).cumsum()
 
     lines = []
     line_spans = []
@@ -89,3 +89,37 @@ def remove_useless_lines(lines_df):
     blines_df = lines_df.drop(dumb_lines)
 
     return blines_df
+
+
+# Sort the lines into bins containing lines with similar start coordinates (x0)
+#df = lines_df.copy()
+def group_lines(df, by):
+    d = 4
+    last = "last_" + by
+    bins = pd.DataFrame(columns=[by, "lines", last, "count"])
+
+    for index, row in df.iterrows():
+        x0 = row[by]
+        poss_bin = bins.loc[(bins[last]-d <= x0) & (bins[last]+d >= x0)]
+
+        if poss_bin.empty:
+            new_row = pd.DataFrame({
+                by: [x0],
+                "lines": [index],
+                last: x0,
+                "count": 1
+            })
+            bins = pd.concat([new_row, bins.loc[:]]).reset_index(drop=True)
+        else:
+            b = bins.iloc[poss_bin.index[-1]]
+
+            if not type(b[0]) is list:
+                b[0] = [b[0]]
+                b[1] = [b[1]]
+
+            b[0].append(x0)
+            b[1].append(index)
+            b[2] = x0
+            b[3] += 1
+
+    return bins
