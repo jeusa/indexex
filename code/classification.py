@@ -100,6 +100,7 @@ def assign_line_labels(lines_df, bins_x0_df, bins_x1_df, x0_n):
     bins_x1 = bins_x1_df.copy()
 
     borders = []
+    first_p_no = lines_df.iloc[0]["page"]
 
     # assign x0_type to lines
     for p_no, p in bins_x0.groupby("page"):
@@ -119,7 +120,7 @@ def assign_line_labels(lines_df, bins_x0_df, bins_x1_df, x0_n):
                 x1_type = 2 # line ends by the right text border
             else:
                 l_x1 = row["x1"]
-                if l_x1 < borders[p_no-1][0] + 0.5*(borders[p_no-1][1] - borders[p_no-1][0]):
+                if l_x1 < borders[p_no-first_p_no][0] + 0.5*(borders[p_no-first_p_no][1] - borders[p_no-first_p_no][0]):
                     x1_type = 0 # line ends before the first half of the text width
                 else:
                     x1_type = 1 # line ends after the first half of the text width but before the border

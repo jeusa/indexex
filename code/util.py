@@ -33,7 +33,7 @@ def list_files(directory, suffix='', recursive=True):
     return files
 
 
-def read_pdf(path, print_info=True):
+def read_pdf(path, page_no_start=1, print_info=True):
 
     pdf_pages = []
     pdf_dicts = []
@@ -49,11 +49,11 @@ def read_pdf(path, print_info=True):
             pdf_dicts.append(page.get_text('dict', flags=~fitz.TEXT_PRESERVE_IMAGES))
 
     if print_info:
-        print("Finished reading", len(pdf_pages), "page(s)")
+        print("Finished reading", len(pdf_pages)-(page_no_start-1), "page(s)")
 
     set_page_size(pdf_dicts)
 
-    return pdf_pages, pdf_dicts
+    return pdf_pages[page_no_start-1:], pdf_dicts[page_no_start-1:]
 
 
 def flatten(t):
