@@ -3,10 +3,15 @@ import os
 
 
 page_size = (0,0)
+page_start = 1
 
 def set_page_size(dicts):
     global page_size
     page_size = (dicts[0]["width"], dicts[1]["height"])
+
+def set_first_page_no(p_no):
+    global page_start
+    page_start = p_no
 
 
 def list_files(directory, suffix='', recursive=True):
@@ -52,9 +57,15 @@ def read_pdf(path, page_no_start=1, print_info=True):
         print("Finished reading", len(pdf_pages)-(page_no_start-1), "page(s)")
 
     set_page_size(pdf_dicts)
+    set_first_page_no(page_no_start)
 
     return pdf_pages[page_no_start-1:], pdf_dicts[page_no_start-1:]
 
 
 def flatten(t):
     return [item for sublist in t for item in sublist]
+
+def similar_to(a, b, d):
+    if ((a+d>b) & (a-d<b)):
+        return True
+    return False

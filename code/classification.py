@@ -54,53 +54,64 @@ def generate_cluster_labels(lines_df, dicts, n_clusters_x0=2, remove_big_x0=True
 
     return df
 
-
-def group_line_starts_ends(lines_df):
+def get_line_start_end_bins(lines_df):
     df = lines_df.copy()
 
     bins_x0 = pd.DataFrame(columns=["x0", "lines", "last_x0", "count", "page"])
     bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "count", "page"])
 
-    for p in df.groupby("page"):
-        b = lines.group_lines(p[1], "x0")
-        b["page"] = p[0]
+    for page, frame in df.groupby("page"):
+        b = lines.group_lines(frame, "x0")
+        b["page"] = page
         bins_x0 = pd.concat([bins_x0, b])
 
-        c = lines.group_lines(p[1], "x1")
-        c["page"] = p[0]
+        c = lines.group_lines(frame, "x1")
+        c["page"] = page
         bins_x1 = pd.concat([bins_x1, c])
-        bins_x1 =  bins_x1.sort_values(by=["page", "count"], ascending=[True, False])
 
-    x0_types = bins_x0.loc[bins_x0["count"]>=4].groupby("page").count().groupby("count").count()["x0"]
-    i = x0_types.argmax()
-    x0_n = x0_types.index[i] # how many types of line start coordinates (x0) -> 3 or 2
+    bins_x1 =  bins_x1.sort_values(by=["page", "count"], ascending=[True, False])
+
+    x0_types = bins_x0.loc[bins_x0["count"]>=4].groupby("page").count().groupby("count").count()["x0"] # count bins with at least 4 elements per page to determine number of types for x_0 (2 or 3)
+    pages_count = x0_types.sum()
+
+    x0_n = 2
+    if x0_types.loc[3] > pages_count * 0.3:
+        x0_n = 3
+
+    return bins_x0, bins_x1, x0_n
+
+
+def group_line_starts_ends(lines_df):
+    df = lines_df.copy()
+
+    bins_x0, bins_x1, x0_n = get_line_start_end_bins(df)
+
+    bins_x1_max = pd.DataFrame()
+    for p_no, frame in bins_x1.groupby("page"):
+        bins_x1_max = pd.concat([bins_x1_max, frame.loc[frame["count"]>=4].iloc[0:1]]) # all lines that end by the right text border
 
     # keep only the x0_n relevant bins per page
     bins_x0_rel = pd.DataFrame(columns=bins_x0.columns)
     for p_no, p in bins_x0.groupby("page"):
-        #x = p.sort_values(by="count", ascending=False).iloc[0:x0_n].sort_values(by="last_x0")
-        x = p.sort_values(by="last_x0").iloc[0:x0_n]
-        #display(x)
-        bins_x0_rel = pd.concat([bins_x0_rel, x])
+        x = p.sort_values(by="last_x0")
+        bins_x0_rel = pd.concat([bins_x0_rel, x.iloc[0:1]]) # add lines that start by the left text border
 
-    bins_x1_max = pd.DataFrame()
-    for s in bins_x1.groupby("page"):
-        bins_x1_max = pd.concat([bins_x1_max, s[1].iloc[0]], axis=1)
-    bins_x1_max = bins_x1_max.T # all lines that end by the right text border
+        z = p.drop(x.iloc[0].name)
+        z = z.sort_values(by="count", ascending=False).iloc[0:x0_n-1].sort_values(by="last_x0")
+        bins_x0_rel = pd.concat([bins_x0_rel, z]) # add the other x0_n-1 bins
 
     return bins_x0_rel, bins_x1_max, x0_n
 
 
-def assign_line_labels(lines_df, bins_x0_df, bins_x1_df, x0_n):
+def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     df = lines_df.copy()
-    df["x0_type"] = -1
-    df["x1_type"] = -1
+    df["x0_type"] = -1 # valid types: {0, ..., x0_n}
+    df["x1_type"] = -1 # valid types: {0,1,2}
 
     bins_x0 = bins_x0_df.copy()
     bins_x1 = bins_x1_df.copy()
 
     borders = []
-    first_p_no = lines_df.iloc[0]["page"]
 
     # assign x0_type to lines
     for p_no, p in bins_x0.groupby("page"):
@@ -120,12 +131,48 @@ def assign_line_labels(lines_df, bins_x0_df, bins_x1_df, x0_n):
                 x1_type = 2 # line ends by the right text border
             else:
                 l_x1 = row["x1"]
-                if l_x1 < borders[p_no-first_p_no][0] + 0.5*(borders[p_no-first_p_no][1] - borders[p_no-first_p_no][0]):
+                if l_x1 < borders[p_no-util.page_start][0] + 0.5*(borders[p_no-util.page_start][1] - borders[p_no-util.page_start][0]):
                     x1_type = 0 # line ends before the first half of the text width
                 else:
                     x1_type = 1 # line ends after the first half of the text width but before the border
 
             df.loc[index, "x1_type"] = x1_type
+
+    return df
+
+
+def correct_x0_types(lines_df, bins_x0, bins_x1):
+    df = lines_df.copy()
+
+    text_widths = [] # difference between mean of first and last bin for x0 for every page
+    for index, row in bins_x1.iterrows():
+        x1_p = row.to_frame().T
+        borders = calc_text_borders(bins_x0.loc[bins_x0["page"]==row["page"]], x1_p)
+        text_widths.append(borders[1]-borders[0])
+
+    width_mean = sum(text_widths)/len(text_widths)
+
+    tw = text_widths.copy()
+    tw.sort()
+    width_median = tw[int(len(tw)/2)]
+
+    f = filter(lambda w: (not util.similar_to(w, width_median, 5)), text_widths) # filter widths that differ from the rest
+    f = list(f)
+
+    p = []
+    for w in range(len(f)):
+        p.append((f[w], text_widths.index(f[w]) + util.page_start)) # add page to strange width
+
+    p_l = [a for w, a in p if w<width_median]
+    p_g = [a for w, a in p if w>width_median] # TODO: correction
+
+    df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type
+
+    return df
+
+
+def assign_labels(lines_df, x0_n):
+    df = lines_df.copy()
 
     # assign labels to lines based on x0_type and x1_type
     df["label"] = "other"

@@ -9,7 +9,7 @@ def make_lines_df(dicts, page_no_start=1):
     page_lines = []
     lines_bbox = []
     page_no = []
-    page_counter = page_no_start
+    page_counter = util.page_start
 
     for p in dicts:
         for b in p["blocks"]:
