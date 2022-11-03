@@ -21,14 +21,15 @@ def get_line_start_end_bins(lines_df):
         c["page"] = page
         bins_x1 = pd.concat([bins_x1, c])
 
-    bins_x1 =  bins_x1.sort_values(by=["page", "count"], ascending=[True, False])
+    bins_x1 =  bins_x1.sort_values(by=["page", "last_x1"], ascending=[True, False])
 
     x0_types = bins_x0.loc[bins_x0["count"]>=4].groupby("page").count().groupby("count").count()["x0"] # count bins with at least 4 elements per page to determine number of types for x_0 (2 or 3)
     pages_count = x0_types.sum()
 
     x0_n = 2
-    if x0_types.loc[3] > pages_count * 0.3:
-        x0_n = 3
+    if 3 in x0_types.index:
+        if x0_types.loc[3] > pages_count * 0.3:
+            x0_n = 3
 
     return bins_x0, bins_x1, x0_n
 
@@ -58,7 +59,13 @@ def group_line_starts_ends(lines_df):
 
     bins_x1_max = pd.DataFrame()
     for p_no, frame in bins_x1.groupby("page"):
-        bins_x1_max = pd.concat([bins_x1_max, frame.loc[frame["count"]>=4].iloc[0:1]]) # all lines that end by the right text border
+        p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
+
+        if p_x1_max.empty:
+            bins_x1_max = pd.concat([bins_x1_max, frame.iloc[0:1]])
+        else:
+            bins_x1_max = pd.concat([bins_x1_max, p_x1_max]) # all lines that end by the right text border
+
 
     bins_x0_rel = get_relevant_x0_bins(bins_x0, x0_n)
 
@@ -78,7 +85,8 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     # assign x0_type to lines
     for p_no, p in bins_x0.groupby("page"):
         for i in range(x0_n):
-            df.loc[p.iloc[i]["lines"], "x0_type"] = i
+            if i < p.shape[0]:
+                df.loc[p.iloc[i]["lines"], "x0_type"] = i
 
         border_x0, border_x1 = calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no])
         pages.append(p_no)
@@ -94,6 +102,8 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     # assign x1_type to lines
     for p_no, p in df.groupby("page"):
         max_x1 = bins_x1.loc[bins_x1["page"]==p_no]["lines"].values[0]
+        if type(max_x1) is not list:
+            max_x1 = [max_x1]
 
         for index, row in p.iterrows():
             x1_type = -1
@@ -136,7 +146,7 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
         p.append((f[w], text_widths.index(f[w]) + util.page_start)) # add page to strange width
 
     p_l = [a for w, a in p if w<width_median]
-    p_g = [a for w, a in p if w>width_median] 
+    p_g = [a for w, a in p if w>width_median]
 
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
@@ -179,6 +189,8 @@ def calc_text_borders(bins_x0, bins_x1):
         x0 = [x0]
     x0 = sum(x0)/len(x0)
     x1 = df_x1.iloc[0]["x1"]
+    if type(x1) is not list:
+        x1 = [x1]
     x1 = sum(x1)/len(x1)
 
     return (x0, x1)
