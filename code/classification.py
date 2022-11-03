@@ -33,6 +33,24 @@ def get_line_start_end_bins(lines_df):
     return bins_x0, bins_x1, x0_n
 
 
+def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
+
+    bins_x0_rel = pd.DataFrame(columns=bins_x0.columns)
+    for p_no, p in bins_x0.groupby("page"):
+        x = p.sort_values(by="last_x0")
+
+        if drop_first:
+            x = x.drop(x.iloc[0].name)
+
+        bins_x0_rel = pd.concat([bins_x0_rel, x.iloc[0:1]]) # add lines that start by the left text border
+
+        z = x.drop(x.iloc[0].name)
+        z = z.sort_values(by="count", ascending=False).iloc[0:x0_n-1].sort_values(by="last_x0")
+        bins_x0_rel = pd.concat([bins_x0_rel, z]) # add the other x0_n-1 bins
+
+    return bins_x0_rel
+
+
 def group_line_starts_ends(lines_df):
     df = lines_df.copy()
 
@@ -42,15 +60,7 @@ def group_line_starts_ends(lines_df):
     for p_no, frame in bins_x1.groupby("page"):
         bins_x1_max = pd.concat([bins_x1_max, frame.loc[frame["count"]>=4].iloc[0:1]]) # all lines that end by the right text border
 
-    # keep only the x0_n relevant bins per page
-    bins_x0_rel = pd.DataFrame(columns=bins_x0.columns)
-    for p_no, p in bins_x0.groupby("page"):
-        x = p.sort_values(by="last_x0")
-        bins_x0_rel = pd.concat([bins_x0_rel, x.iloc[0:1]]) # add lines that start by the left text border
-
-        z = p.drop(x.iloc[0].name)
-        z = z.sort_values(by="count", ascending=False).iloc[0:x0_n-1].sort_values(by="last_x0")
-        bins_x0_rel = pd.concat([bins_x0_rel, z]) # add the other x0_n-1 bins
+    bins_x0_rel = get_relevant_x0_bins(bins_x0, x0_n)
 
     return bins_x0_rel, bins_x1_max, x0_n
 
@@ -63,14 +73,23 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     bins_x0 = bins_x0_df.copy()
     bins_x1 = bins_x1_df.copy()
 
-    borders = []
+    pages, p_x0, p_x1 = [], [], []
 
     # assign x0_type to lines
     for p_no, p in bins_x0.groupby("page"):
         for i in range(x0_n):
             df.loc[p.iloc[i]["lines"], "x0_type"] = i
 
-        borders.append(calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no]))
+        border_x0, border_x1 = calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no])
+        pages.append(p_no)
+        p_x0.append(border_x0)
+        p_x1.append(border_x1)
+
+    borders = pd.DataFrame({
+        "page": pages,
+        "x0": p_x0,
+        "x1": p_x1
+        })
 
     # assign x1_type to lines
     for p_no, p in df.groupby("page"):
@@ -83,7 +102,8 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
                 x1_type = 2 # line ends by the right text border
             else:
                 l_x1 = row["x1"]
-                if l_x1 < borders[p_no-util.page_start][0] + 0.5*(borders[p_no-util.page_start][1] - borders[p_no-util.page_start][0]):
+
+                if l_x1 < borders.loc[borders["page"]==p_no]["x0"].values[0] + 0.5*(borders.loc[borders["page"]==p_no]["x1"].values[0] - borders.loc[borders["page"]==p_no]["x0"].values[0]):
                     x1_type = 0 # line ends before the first half of the text width
                 else:
                     x1_type = 1 # line ends after the first half of the text width but before the border
@@ -93,7 +113,7 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     return df
 
 
-def correct_x0_types(lines_df, bins_x0, bins_x1):
+def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     df = lines_df.copy()
 
     text_widths = [] # difference between mean of first and last bin for x0 for every page
@@ -116,9 +136,15 @@ def correct_x0_types(lines_df, bins_x0, bins_x1):
         p.append((f[w], text_widths.index(f[w]) + util.page_start)) # add page to strange width
 
     p_l = [a for w, a in p if w<width_median]
-    p_g = [a for w, a in p if w>width_median] # TODO: correction
+    p_g = [a for w, a in p if w>width_median] 
 
-    df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type
+    df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
+
+    # correct wrong x0_type (and x1_type) for p_g
+    bins = get_line_start_end_bins(df.loc[df["page"].isin(p_g)])
+    bins_x0_cor = get_relevant_x0_bins(bins[0], x0_n, drop_first=True) # drop bin on the very left
+    df_cor = assign_types(df.loc[df["page"].isin(p_g)], bins_x0_cor, bins_x1.loc[bins_x1["page"].isin(p_g)], x0_n)
+    df.loc[df["page"].isin(p_g), ["x0_type", "x1_type"]] = df_cor[["x0_type", "x1_type"]]
 
     return df
 
