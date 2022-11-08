@@ -80,24 +80,13 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     bins_x0 = bins_x0_df.copy()
     bins_x1 = bins_x1_df.copy()
 
-    pages, p_x0, p_x1 = [], [], []
-
     # assign x0_type to lines
     for p_no, p in bins_x0.groupby("page"):
         for i in range(x0_n):
             if i < p.shape[0]:
                 df.loc[p.iloc[i]["lines"], "x0_type"] = i
 
-        border_x0, border_x1 = calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no])
-        pages.append(p_no)
-        p_x0.append(border_x0)
-        p_x1.append(border_x1)
-
-    borders = pd.DataFrame({
-        "page": pages,
-        "x0": p_x0,
-        "x1": p_x1
-        })
+    borders = make_borders_df(bins_x0, bins_x1)
 
     # assign x1_type to lines
     for p_no, p in df.groupby("page"):
@@ -113,26 +102,21 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
             else:
                 l_x1 = row["x1"]
 
-                if l_x1 < borders.loc[borders["page"]==p_no]["x0"].values[0] + 0.5*(borders.loc[borders["page"]==p_no]["x1"].values[0] - borders.loc[borders["page"]==p_no]["x0"].values[0]):
-                    x1_type = 0 # line ends before the first half of the text width
+                if l_x1 < borders.loc[borders["page"]==p_no]["x0"].values[0] + 0.7*(borders.loc[borders["page"]==p_no]["x1"].values[0] - borders.loc[borders["page"]==p_no]["x0"].values[0]):
+                    x1_type = 0 # line ends before the first 0.7 text width
                 else:
-                    x1_type = 1 # line ends after the first half of the text width but before the border
+                    x1_type = 1 # line ends after the first 0.7 text width but before the border
 
             df.loc[index, "x1_type"] = x1_type
 
     return df
 
 
+# correct x0_type for pages where something went wrong
 def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     df = lines_df.copy()
 
-    text_widths = [] # difference between mean of first and last bin for x0 for every page
-    for index, row in bins_x1.iterrows():
-        x1_p = row.to_frame().T
-        borders = calc_text_borders(bins_x0.loc[bins_x0["page"]==row["page"]], x1_p)
-        text_widths.append(borders[1]-borders[0])
-
-    width_mean = sum(text_widths)/len(text_widths)
+    text_widths = list(make_borders_df(bins_x0, bins_x1)["dx"]) # difference between mean of first and last bin for x0 for every page
 
     tw = text_widths.copy()
     tw.sort()
@@ -148,8 +132,6 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     p_l = [a for w, a in p if w<width_median]
     p_g = [a for w, a in p if w>width_median]
 
-    print(p, width_median)
-
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
     # correct wrong x0_type (and x1_type) for p_g
@@ -161,10 +143,10 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     return df
 
 
+# assign labels to lines based on x0_type and x1_type
 def assign_labels(lines_df, x0_n):
     df = lines_df.copy()
 
-    # assign labels to lines based on x0_type and x1_type
     df["label"] = "other"
     for index, row in df.iterrows():
         x0_t = row["x0_type"]
@@ -180,6 +162,25 @@ def assign_labels(lines_df, x0_n):
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
 
     return df
+
+
+def make_borders_df(bins_x0, bins_x1):
+
+    pages, p_x0, p_x1 = [], [], []
+    for p_no, p in bins_x0.groupby("page"):
+        border_x0, border_x1 = calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no])
+        pages.append(p_no)
+        p_x0.append(border_x0)
+        p_x1.append(border_x1)
+
+    borders = pd.DataFrame({
+            "page": pages,
+            "x0": p_x0,
+            "x1": p_x1
+            })
+    borders["dx"] = borders["x1"] - borders["x0"]
+
+    return borders
 
 
 def calc_text_borders(bins_x0, bins_x1):
@@ -212,7 +213,7 @@ def improve_classification(lines_df):
 def improve_country_classification(lines_df):
 
     df = lines_df.copy()
-    regex_cont = "(\(cont.\)|\(coni.\)|\(continued\)|\(coniinued\))"
+    regex_cont = "-{0,2}—?\s?\(?(con\w*)\.?\)?"
 
     for row in df.loc[lines_df["label"] == "country"].iterrows():
 
@@ -225,7 +226,8 @@ def improve_country_classification(lines_df):
         if row[1]["new_label"] == "country":
             text = re.sub(regex_cont, "", text)
             text = re.sub("1and", "land", text)
-            text = re.sub("[,.:;]", "", text)
+            text = re.sub("5", "S", text)
+            text = re.sub("[,.:;-]", "", text)
             text = text.strip()
 
             df.at[row[0], "line_text"] = text
