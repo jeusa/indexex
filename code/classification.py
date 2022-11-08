@@ -40,7 +40,7 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
     for p_no, p in bins_x0.groupby("page"):
         x = p.sort_values(by="last_x0")
 
-        if drop_first:
+        if drop_first & (x.iloc[0]["count"] <= 2):
             x = x.drop(x.iloc[0].name)
 
         bins_x0_rel = pd.concat([bins_x0_rel, x.iloc[0:1]]) # add lines that start by the left text border
@@ -147,6 +147,8 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
 
     p_l = [a for w, a in p if w<width_median]
     p_g = [a for w, a in p if w>width_median]
+
+    print(p, width_median)
 
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
