@@ -122,3 +122,38 @@ def group_lines(df, by):
             b[3] += 1
 
     return bins
+
+
+def make_borders_df(bins_x0, bins_x1):
+
+    pages, p_x0, p_x1 = [], [], []
+    for p_no, p in bins_x0.groupby("page"):
+        border_x0, border_x1 = calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no])
+        pages.append(p_no)
+        p_x0.append(border_x0)
+        p_x1.append(border_x1)
+
+    borders = pd.DataFrame({
+            "page": pages,
+            "x0": p_x0,
+            "x1": p_x1
+            })
+    borders["dx"] = borders["x1"] - borders["x0"]
+
+    return borders
+
+
+def calc_text_borders(bins_x0, bins_x1):
+    df_x0 = bins_x0.copy()
+    df_x1 = bins_x1.copy()
+
+    x0 = df_x0.iloc[0]["x0"]
+    if type(x0) is not list:
+        x0 = [x0]
+    x0 = sum(x0)/len(x0)
+    x1 = df_x1.iloc[0]["x1"]
+    if type(x1) is not list:
+        x1 = [x1]
+    x1 = sum(x1)/len(x1)
+
+    return (x0, x1)
