@@ -124,7 +124,7 @@ def improve_country_classification(lines_df):
             continue
 
         if row[1]["new_label"] == "country":
-            text = re.sub(regex_cont, "", text)
+            text = re.sub(regex_cont, "", text, flags=re.IGNORECASE)
             text = re.sub("1and", "land", text)
             text = re.sub("5", "S", text)
             text = re.sub("[,.:;-]", "", text)

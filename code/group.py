@@ -40,7 +40,8 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
     for p_no, p in bins_x0.groupby("page"):
         x = p.sort_values(by="last_x0")
 
-        if drop_first & (x.iloc[0]["count"] <= 2):
+        #if drop_first & (x.iloc[0]["count"] <= 2):
+        if drop_first:
             x = x.drop(x.iloc[0].name)
 
         bins_x0_rel = pd.concat([bins_x0_rel, x.iloc[0:1]]) # add lines that start by the left text border
@@ -59,7 +60,8 @@ def group_line_starts_ends(lines_df):
 
     bins_x1_max = pd.DataFrame()
     for p_no, frame in bins_x1.groupby("page"):
-        p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
+        # p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
+        p_x1_max = frame.sort_values(by="count", ascending=False)
 
         if p_x1_max.empty:
             bins_x1_max = pd.concat([bins_x1_max, frame.iloc[0:1]])
