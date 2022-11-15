@@ -7,7 +7,7 @@ page_start = 1
 
 def set_page_size(dicts):
     global page_size
-    page_size = (dicts[0]["width"], dicts[1]["height"])
+    page_size = (dicts[0]["width"], dicts[0]["height"])
 
 def set_first_page_no(p_no):
     global page_start

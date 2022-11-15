@@ -60,8 +60,10 @@ def group_line_starts_ends(lines_df):
 
     bins_x1_max = pd.DataFrame()
     for p_no, frame in bins_x1.groupby("page"):
-        # p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
-        p_x1_max = frame.sort_values(by="count", ascending=False)
+        p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
+        #p_x1_max = frame.sort_values(by="count", ascending=False)
+        # TODO: dont just use one bin but two, if there are two big bins
+        # or dont use x1 for start-classification?
 
         if p_x1_max.empty:
             bins_x1_max = pd.concat([bins_x1_max, frame.iloc[0:1]])
