@@ -6,6 +6,39 @@ import util
 import lines
 
 
+# Sort the lines into bins containing lines with similar values for parameter by
+def group_lines(df, by):
+    d = 10
+    last = "last_" + by
+    bins = pd.DataFrame(columns=[by, "lines", last, "count"])
+
+    for index, row in df.iterrows():
+        x0 = row[by]
+        poss_bin = bins.loc[(bins[last]-d <= x0) & (bins[last]+d >= x0)]
+
+        if poss_bin.empty:
+            new_row = pd.DataFrame({
+                by: [x0],
+                "lines": [index],
+                last: x0,
+                "count": 1
+            })
+            bins = pd.concat([new_row, bins.loc[:]]).reset_index(drop=True)
+        else:
+            b = bins.iloc[poss_bin.index[-1]]
+
+            if not type(b[0]) is list:
+                b[0] = [b[0]]
+                b[1] = [b[1]]
+
+            b[0].append(x0)
+            b[1].append(index)
+            b[2] = x0
+            b[3] += 1
+
+    return bins
+
+
 def get_line_start_end_bins(lines_df):
     df = lines_df.copy()
 
@@ -13,11 +46,11 @@ def get_line_start_end_bins(lines_df):
     bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "count", "page"])
 
     for page, frame in df.groupby("page"):
-        b = lines.group_lines(frame, "x0")
+        b = group_lines(frame, "x0")
         b["page"] = page
         bins_x0 = pd.concat([bins_x0, b])
 
-        c = lines.group_lines(frame, "x1")
+        c = group_lines(frame, "x1")
         c["page"] = page
         bins_x1 = pd.concat([bins_x1, c])
 
@@ -40,7 +73,6 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
     for p_no, p in bins_x0.groupby("page"):
         x = p.sort_values(by="last_x0")
 
-        #if drop_first & (x.iloc[0]["count"] <= 2):
         if drop_first:
             x = x.drop(x.iloc[0].name)
 
@@ -60,9 +92,9 @@ def group_line_starts_ends(lines_df):
 
     bins_x1_max = pd.DataFrame()
     for p_no, frame in bins_x1.groupby("page"):
-        p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
-        #p_x1_max = frame.sort_values(by="count", ascending=False)
-        # TODO: dont just use one bin but two, if there are two big bins
+        #p_x1_max = frame.loc[frame["count"]>=4].iloc[0:1]
+        p_x1_max = frame.sort_values(by="count", ascending=False)
+        # dont just use one bin but two, if there are two big bins
         # or dont use x1 for start-classification?
 
         if p_x1_max.empty:

@@ -1,5 +1,9 @@
 import fitz
 import os
+import pytesseract
+import pandas as pd
+
+from pdf2image import convert_from_path
 
 
 page_size = (0,0)
@@ -60,6 +64,24 @@ def read_pdf(path, page_no_start=1, print_info=True):
     set_first_page_no(page_no_start)
 
     return pdf_pages[page_no_start-1:], pdf_dicts[page_no_start-1:]
+
+
+def ocr(file_path, start_page=1, verbose=True):
+    pdf_pages = convert_from_path(file_path, 400)[start_page-1:]
+    pdf_df = pd.DataFrame()
+
+    if verbose:
+        print(f"Starting OCR for {file_path}")
+
+    for i, page_img in enumerate(pdf_pages):
+        df = pytesseract.image_to_data(page_img, config="--psm 4 --dpi 400", output_type="data.frame")
+        df["page_num"] = i + start_page
+        pdf_df = pd.concat([pdf_df, df])
+
+    if verbose:
+        print(f"OCR done for {i+1} pages.")
+
+    return pdf_df
 
 
 def flatten(t):

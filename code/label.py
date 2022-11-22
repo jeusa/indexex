@@ -50,6 +50,7 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
 # correct x0_type for pages where something went wrong
 def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     df = lines_df.copy()
+    start_page = lines_df["page"].min()
 
     text_widths = list(lines.make_borders_df(bins_x0, bins_x1)["dx"]) # difference between mean of first and last bin for x0 for every page
 
@@ -64,8 +65,8 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     for w in range(len(f)):
         p.append((f[w], text_widths.index(f[w]) + util.page_start)) # add page to strange width
 
-    p_l = [a for w, a in p if w<width_median]
-    p_g = [a for w, a in p if w>width_median]
+    p_l = [a + start_page-1 for w, a in p if w<width_median]
+    p_g = [a + start_page-1 for w, a in p if w>width_median]
 
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
@@ -92,7 +93,8 @@ def assign_labels(lines_df, x0_n):
             x0_start = 0
 
         df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"
-        df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]==2), "label"] = "start"
+        # df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]==2), "label"] = "start"
+        df.loc[(df["x0_type"]==x0_start), "label"] = "start"
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]==2), "label"] = "middle"
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
 

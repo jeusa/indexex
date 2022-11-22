@@ -4,6 +4,46 @@ import re
 import util
 
 
+def make_lines_df_from_ocr(pdf_df):
+    df = pdf_df.copy()
+
+    df = df.dropna(subset=["text"])
+    df = df.rename(columns={"left": "x0", "top": "y0"})
+    df["x1"] = df["x0"] + df["width"]
+    df["y1"] = df["y0"] + df["height"]
+
+    page, lines_text, x0, x1, y0, y1 = [], [], [], [], [], []
+
+    for p_no, page_frame in df.groupby("page_num"):
+        for b, block in page_frame.groupby("block_num"):
+            for p, par in block.groupby("par_num"):
+                for no, line in par.groupby("line_num"):
+
+                    line_text = ""
+                    for i, word in line.iterrows():
+                        line_text += word["text"] + " "
+
+                    if not line_text.strip() == "":
+                        lines_text.append(line_text)
+                        page.append(p_no)
+                        x0.append(line["x0"].min())
+                        x1.append(line["x1"].max())
+                        y0.append(line["y0"].min())
+                        y1.append(line["y1"].max())
+
+    lines_df = pd.DataFrame({
+        "line_text": lines_text,
+        "x0": x0,
+        "y0": y0,
+        "x1": x1,
+        "y1": y1,
+        "page": page
+    })
+    lines_df["dx"] = lines_df["x1"] - lines_df["x0"]
+
+    return lines_df
+
+
 def make_lines_df(dicts, page_no_start=1):
 
     page_lines = []
@@ -90,38 +130,6 @@ def remove_useless_lines(lines_df):
 
     return blines_df
 
-
-# Sort the lines into bins containing lines with similar values for parameter by
-def group_lines(df, by):
-    d = 4
-    last = "last_" + by
-    bins = pd.DataFrame(columns=[by, "lines", last, "count"])
-
-    for index, row in df.iterrows():
-        x0 = row[by]
-        poss_bin = bins.loc[(bins[last]-d <= x0) & (bins[last]+d >= x0)]
-
-        if poss_bin.empty:
-            new_row = pd.DataFrame({
-                by: [x0],
-                "lines": [index],
-                last: x0,
-                "count": 1
-            })
-            bins = pd.concat([new_row, bins.loc[:]]).reset_index(drop=True)
-        else:
-            b = bins.iloc[poss_bin.index[-1]]
-
-            if not type(b[0]) is list:
-                b[0] = [b[0]]
-                b[1] = [b[1]]
-
-            b[0].append(x0)
-            b[1].append(index)
-            b[2] = x0
-            b[3] += 1
-
-    return bins
 
 
 def make_borders_df(bins_x0, bins_x1):
