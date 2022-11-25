@@ -8,7 +8,8 @@ import lines
 
 # Sort the lines into bins containing lines with similar values for parameter by
 def group_lines(df, by):
-    d = 10
+    #d = 4 old value without ocr
+    d = 20
     last = "last_" + by
     bins = pd.DataFrame(columns=[by, "lines", last, "count"])
 

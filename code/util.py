@@ -67,16 +67,21 @@ def read_pdf(path, page_no_start=1, print_info=True):
 
 
 def ocr(file_path, start_page=1, verbose=True):
+    if verbose:
+        print(f"Converting pdf pages {file_path} to images.")
+
     pdf_pages = convert_from_path(file_path, 400)[start_page-1:]
     pdf_df = pd.DataFrame()
 
     if verbose:
-        print(f"Starting OCR for {file_path}")
+        print("Starting OCR...")
 
     for i, page_img in enumerate(pdf_pages):
         df = pytesseract.image_to_data(page_img, config="--psm 4 --dpi 400", output_type="data.frame")
         df["page_num"] = i + start_page
         pdf_df = pd.concat([pdf_df, df])
+
+        print(f"Done with page {i+start_page}")
 
     if verbose:
         print(f"OCR done for {i+1} pages.")

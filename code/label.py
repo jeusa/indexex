@@ -58,15 +58,15 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     tw.sort()
     width_median = tw[int(len(tw)/2)]
 
-    f = filter(lambda w: (not util.similar_to(w, width_median, 5)), text_widths) # filter widths that differ from the rest
+    f = filter(lambda w: (not util.similar_to(w, width_median, 10)), text_widths) # filter widths that differ from the rest
     f = list(f)
 
     p = []
     for w in range(len(f)):
-        p.append((f[w], text_widths.index(f[w]) + util.page_start)) # add page to strange width
+        p.append((f[w], text_widths.index(f[w]) + start_page)) # add page to strange width
 
-    p_l = [a + start_page-1 for w, a in p if w<width_median]
-    p_g = [a + start_page-1 for w, a in p if w>width_median]
+    p_l = [a for w, a in p if w<width_median]
+    p_g = [a for w, a in p if w>width_median]
 
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
@@ -92,9 +92,12 @@ def assign_labels(lines_df, x0_n):
         if x0_n == 2:
             x0_start = 0
 
+        if x0_n==2:
+            df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]==2), "label"] = "start"
+        elif x0_n==3:
+            df.loc[(df["x0_type"]==x0_start), "label"] = "start"
+
         df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"
-        # df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]==2), "label"] = "start"
-        df.loc[(df["x0_type"]==x0_start), "label"] = "start"
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]==2), "label"] = "middle"
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
 
