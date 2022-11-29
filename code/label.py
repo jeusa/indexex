@@ -93,7 +93,7 @@ def assign_labels(lines_df, x0_n):
             x0_start = 0
 
         if x0_n==2:
-            df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]==2), "label"] = "start"
+            df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]>0), "label"] = "start"
         elif x0_n==3:
             df.loc[(df["x0_type"]==x0_start), "label"] = "start"
 
@@ -125,7 +125,7 @@ def improve_country_classification(lines_df):
         text = row[1]["line_text"]
 
         if re.search("[0-9]{2}", text):
-            df.at[row[0], "new_label"] = "other"
+            df.at[row[0], "new_label"] = "start"
             continue
 
         if row[1]["new_label"] == "country":
