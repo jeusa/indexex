@@ -66,7 +66,7 @@ def read_pdf(path, page_no_start=1, print_info=True):
     return pdf_pages[page_no_start-1:], pdf_dicts[page_no_start-1:]
 
 
-def ocr(file_path, start_page=1, verbose=True):
+def ocr(file_path, start_page=1, verbose=True, save_to=None):
     if verbose:
         print(f"Converting pdf pages {file_path} to images.")
 
@@ -81,10 +81,24 @@ def ocr(file_path, start_page=1, verbose=True):
         df["page_num"] = i + start_page
         pdf_df = pd.concat([pdf_df, df])
 
-        print(f"Done with page {i+start_page}")
+        if verbose:
+            print(f"Done with page {i+start_page}")
 
     if verbose:
         print(f"OCR done for {i+1} pages.")
+
+    if not save_to == None:
+        if os.path.isdir(save_to):
+            if not save_to.endswith(os.sep):
+                save_to += os.sep
+
+            save_path = save_to + os.path.basename(file_path).replace(".pdf", ".csv")
+            pdf_df.to_csv(save_path, index=False)
+
+            if verbose:
+                print(f"Saved data frame to {save_path}.")
+        else:
+            print(f"Cannot save to {save_to}. Not a directory.")
 
     return pdf_df
 
