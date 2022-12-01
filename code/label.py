@@ -76,7 +76,28 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     df_cor = assign_types(df.loc[df["page"].isin(p_g)], bins_x0_cor, bins_x1.loc[bins_x1["page"].isin(p_g)], x0_n)
     df.loc[df["page"].isin(p_g), ["x0_type", "x1_type"]] = df_cor[["x0_type", "x1_type"]]
 
-    return df
+    return df, p_l, p_g
+
+
+# approve x0_type correction for pages where the widtht seemed to small
+def approve_correction(orig_df, cor_df, p_l):
+    df = cor_df.copy()
+
+    start_counts = []
+    for p, frame in orig_df.loc[orig_df["page"].isin(p_l)].groupby("page"):
+        c = frame.loc[frame["label"]=="start"].shape[0]
+        start_counts.append(c)
+
+    start_counts_c = []
+    for p, frame in cor_df.loc[cor_df["page"].isin(p_l)].groupby("page"):
+        c = frame.loc[frame["label"]=="start"].shape[0]
+        start_counts_c.append(c)
+
+    for i in range(len(start_counts)):
+        if (start_counts_c[i] <= 2) & (start_counts_c[i] < start_counts[i]): # after correction significantly less start lines
+            cor_df.loc[cor_df["page"]==p_l[i]] = orig_df.loc[orig_df["page"]==p_l[i]]
+
+    return cor_df
 
 
 # assign labels to lines based on x0_type and x1_type
