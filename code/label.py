@@ -139,7 +139,7 @@ def improve_classification(lines_df):
 def improve_country_classification(lines_df):
 
     df = lines_df.copy()
-    regex_cont = "-{0,2}—?\s?\(?(con\w*)\.?\)?"
+    regex_cont = "(?!\s?congo)-{0,2}—?\s?\(?(con\w*)\.?\)?" # regex to filter out "continued" and its variants
 
     for row in df.loc[lines_df["label"] == "country"].iterrows():
 
