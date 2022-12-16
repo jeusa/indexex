@@ -11,28 +11,67 @@ def make_lines_df_from_ocr(pdf_df):
     df = df.rename(columns={"left": "x0", "top": "y0"})
     df["x1"] = df["x0"] + df["width"]
     df["y1"] = df["y0"] + df["height"]
+    reg_art = "^\W+(?<!\()"
 
     page, lines_text, x0, x1, y0, y1 = [], [], [], [], [], []
+    art = []
 
     for p_no, page_frame in df.groupby("page_num"):
         for b, block in page_frame.groupby("block_num"):
             for p, par in block.groupby("par_num"):
                 for no, line in par.groupby("line_num"):
 
+                    art_text = ""
+                    artifact_start = True
+
                     line_text = ""
+                    l_x0 = 0
+                    l_y0 = 0
+
                     for i, word in line.iterrows():
+
+                        if artifact_start: # to filter out artifacts in the beginning of a line
+                            a = re.search(reg_art, word["text"])
+                            if a != None:
+                                art_text += a.group()
+                                rest = re.sub(reg_art, "", word["text"])
+
+                                if len(rest.strip()) == 0:
+                                    if i+1 in line.index:
+                                        l_x0 = line.loc[i+1]["x0"]
+                                        l_y0 = line.loc[i+1]["y0"]
+                                else:
+                                    line_text += rest + " "
+                                    word_len = len(word["text"])
+                                    art_len = len(art_text)/2
+                                    l_x0 = int(word["x0"] + (word["x1"] - word["x0"]) * art_len/word_len)
+
+                                continue
+
+                            artifact_start = False
+                            if l_x0 == 0:
+                                l_x0 = word["x0"]
+
                         line_text += word["text"] + " "
 
-                    if not line_text.strip() == "":
+                    line_text = line_text.strip()
+
+                    l_x1 = line["x1"].max()
+                    l_y0 = line["y0"].min()
+                    l_y1 = line["y1"].max()
+
+                    if len(line_text) > 2:
+                        art.append(art_text)
                         lines_text.append(line_text)
                         page.append(p_no)
-                        x0.append(line["x0"].min())
-                        x1.append(line["x1"].max())
-                        y0.append(line["y0"].min())
-                        y1.append(line["y1"].max())
+                        x0.append(l_x0)
+                        x1.append(l_x1)
+                        y0.append(l_y0)
+                        y1.append(l_y1)
 
     lines_df = pd.DataFrame({
         "line_text": lines_text,
+        "artifact_text": art,
         "x0": x0,
         "y0": y0,
         "x1": x1,

@@ -125,17 +125,6 @@ def assign_labels(lines_df, x0_n):
     return df
 
 
-def improve_classification(lines_df):
-
-    df = lines_df.copy()
-    df["new_label"] = df["label"]
-
-    df = improve_start_classification(df)
-    df = improve_country_classification(df)
-
-    return df
-
-
 def improve_country_classification(lines_df):
 
     df = lines_df.copy()
@@ -160,24 +149,5 @@ def improve_country_classification(lines_df):
 
         if sum(map(str.isupper, text)) < sum(map(str.islower, text)):
             df.at[row[0], "new_label"] = "region"
-
-    return df
-
-
-def improve_start_classification(lines_df):
-
-    df = lines_df.copy()
-    regex_date = "[A-Z]([a-z]{2}.?|[a-z]{3}.?) [0-9]{1,2}"
-    df["date"] = ""
-
-    for row in df.loc[df["label"] == "start"].iterrows():
-
-        text = row[1]["line_text"]
-        date_match = re.search(regex_date, text[:12])
-
-        if date_match:
-            df.at[row[0], "date"] = date_match.group()
-        if date_match == None:
-            df.at[row[0], "new_label"] = "other"
 
     return df
