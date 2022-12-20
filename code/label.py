@@ -114,11 +114,12 @@ def assign_labels(lines_df, x0_n):
             x0_start = 0
 
         if x0_n==2:
+            df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"
             df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]>0), "label"] = "start"
         elif x0_n==3:
+            df.loc[(df["x0_type"]==0) & (df["x1_type"]<2), "label"] = "country"
             df.loc[(df["x0_type"]==x0_start), "label"] = "start"
 
-        df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]==2), "label"] = "middle"
         df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
 

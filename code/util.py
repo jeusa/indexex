@@ -68,7 +68,7 @@ def read_pdf(path, page_no_start=1, print_info=True):
 
 def ocr(file_path, start_page=1, verbose=True, save_to=None):
     if verbose:
-        print(f"Converting pdf pages {file_path} to images.")
+        print(f"Converting pdf pages for {file_path} to images.")
 
     pdf_pages = convert_from_path(file_path, 400)[start_page-1:]
     pdf_df = pd.DataFrame()
