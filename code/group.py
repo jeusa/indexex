@@ -55,8 +55,8 @@ def group_lines(df, by):
 def get_line_start_end_bins(lines_df):
     df = lines_df.copy()
 
-    bins_x0 = pd.DataFrame(columns=["x0", "lines", "last_x0", "count", "page"])
-    bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "count", "page"])
+    bins_x0 = pd.DataFrame(columns=["x0", "lines", "last_x0", "last_x0_mean", "count", "page"])
+    bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "last_x1_mean", "count", "page"])
 
     for page, frame in df.groupby("page"):
         b = group_lines(frame, "x0")

@@ -8,7 +8,7 @@ import label
 import records
 
 digits = "[0-9oOIlSQriz]"
-re_d1 = "^(([A-Za-z]{3}[.:]{0,3}|[A-Za-z]{4}.?) ?[1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # example: Nov. 4 | July 25th
+re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?[1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # example: Nov. 4 | July 25th
 re_d2 = "^([1-3IlzZ]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # example: 13/III/1986 | 7/11/198S
 re_d3 = "([1-3IlzZ]?" + digits + "(st|nd|rd|th)? ?[A-Za-z]{3,}[,.] ?[I1l]" + digits + "{3})"
 
@@ -37,6 +37,7 @@ def extract_indexes(pdf_df, verbose=True, double_paged=None, save_to=None):
     ind_df = label.improve_country_classification(ind_df)
 
     ind_df = records.extract_records(ind_df)
+    ind_df = extract_dates(ind_df)
 
     if not save_to == None:
         ind_df.to_csv(save_to, index=False)
@@ -127,7 +128,7 @@ def extract_dates(rec_df):
             if not d == None:
                 df.loc[i, "full_date"] = d.group(1)
 
-                if dt==3:
+                if dt!=1:
                     y = re.search(digits + "{4}", d.group(1))
                     df.loc[i, "year"] = y.group()
 
@@ -159,6 +160,10 @@ def get_date_type(rec_df):
         samp.loc[i, ["date_type"]] = dt
 
     date_type = samp.groupby("date_type").count().sort_values("country", ascending=False)
-    date_type = date_type.iloc[0].name
+
+    if not date_type.empty:
+        date_type = date_type.iloc[0].name
+    else:
+        date_type = -1
 
     return date_type
