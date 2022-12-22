@@ -11,17 +11,19 @@ def group_lines(df, by):
     #d = 4 old value without ocr
     d = 20
     last = "last_" + by
-    bins = pd.DataFrame(columns=[by, "lines", last, "count"])
+    last_m = last + "_mean"
+    bins = pd.DataFrame(columns=[by, "lines", last, last_m, "count"])
 
     for index, row in df.iterrows():
         x0 = row[by]
-        poss_bin = bins.loc[(bins[last]-d <= x0) & (bins[last]+d >= x0)]
+        poss_bin = bins.loc[(bins[last_m]-d <= x0) & (bins[last_m]+d >= x0)]
 
         if poss_bin.empty:
             new_row = pd.DataFrame({
                 by: [x0],
                 "lines": [index],
-                last: x0,
+                last: [x0],
+                last_m: [x0],
                 "count": 1
             })
             bins = pd.concat([new_row, bins.loc[:]]).reset_index(drop=True)
@@ -31,11 +33,21 @@ def group_lines(df, by):
             if not type(b[0]) is list:
                 b[0] = [b[0]]
                 b[1] = [b[1]]
+                b[2] = [b[2]]
 
-            b[0].append(x0)
-            b[1].append(index)
-            b[2] = x0
-            b[3] += 1
+            b[by].append(x0)
+            b["lines"].append(index)
+            b["count"] += 1
+
+            if len(b[last]) >= 2:
+                b[last].pop(0)
+            b[last].append(x0)
+
+            last_mean = b[last]
+            if type(last_mean) is list:
+                last_mean = sum(b[last]) / len(b[last])
+            b[last_m] = last_mean
+
 
     return bins
 
@@ -55,7 +67,7 @@ def get_line_start_end_bins(lines_df):
         c["page"] = page
         bins_x1 = pd.concat([bins_x1, c])
 
-    bins_x1 =  bins_x1.sort_values(by=["page", "last_x1"], ascending=[True, False])
+    bins_x1 =  bins_x1.sort_values(by=["page", "last_x1_mean"], ascending=[True, False])
 
     x0_types = bins_x0.loc[bins_x0["count"]>=4].groupby("page").count().groupby("count").count()["x0"] # count bins with at least 4 elements per page to determine number of types for x_0 (2 or 3)
     pages_count = x0_types.sum()
@@ -72,7 +84,7 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
 
     bins_x0_rel = pd.DataFrame(columns=bins_x0.columns)
     for p_no, p in bins_x0.groupby("page"):
-        x = p.sort_values(by="last_x0")
+        x = p.sort_values(by="last_x0_mean")
 
         if drop_first:
             x = x.drop(x.iloc[0].name)
@@ -80,7 +92,7 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
         bins_x0_rel = pd.concat([bins_x0_rel, x.iloc[0:1]]) # add lines that start by the left text border
 
         z = x.drop(x.iloc[0].name)
-        z = z.sort_values(by="count", ascending=False).iloc[0:x0_n-1].sort_values(by="last_x0")
+        z = z.sort_values(by="count", ascending=False).iloc[0:x0_n-1].sort_values(by="last_x0_mean")
         bins_x0_rel = pd.concat([bins_x0_rel, z]) # add the other x0_n-1 bins
 
     return bins_x0_rel

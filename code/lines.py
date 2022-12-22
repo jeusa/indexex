@@ -11,7 +11,8 @@ def make_lines_df_from_ocr(pdf_df):
     df = df.rename(columns={"left": "x0", "top": "y0"})
     df["x1"] = df["x0"] + df["width"]
     df["y1"] = df["y0"] + df["height"]
-    reg_art = "^\W+(?<!\()"
+    #reg_art = "^\W+(?<!\()"
+    reg_art = "^[\W_]*([oeau]{2,})?\s?[\W_]*(?<!\()"
 
     page, lines_text, x0, x1, y0, y1 = [], [], [], [], [], []
     art = []
@@ -45,6 +46,7 @@ def make_lines_df_from_ocr(pdf_df):
                                     word_len = len(word["text"])
                                     art_len = len(art_text)/2
                                     l_x0 = int(word["x0"] + (word["x1"] - word["x0"]) * art_len/word_len)
+                                    artifact_start = False
 
                                 continue
 

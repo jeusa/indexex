@@ -58,7 +58,7 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     tw.sort()
     width_median = tw[int(len(tw)/2)]
 
-    f = filter(lambda w: (not util.similar_to(w, width_median, 10)), text_widths) # filter widths that differ from the rest
+    f = filter(lambda w: (not util.similar_to(w, width_median, 20)), text_widths) # filter widths that differ from the rest
     f = list(f)
 
     p = []
