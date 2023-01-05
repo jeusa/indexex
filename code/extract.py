@@ -100,12 +100,14 @@ def is_double_paged(pdf_df, borders):
 def extract_dates(rec_df):
     df = rec_df.copy()
     df["full_date"] = ""
+    df["day"] = 0
+    df["month"] = ""
     df["year"] = 0
 
     digits = "[0-9oOIlSQrizZ]"
     re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?[1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # in the beginning, example: Nov. 4 | July 25th
-    re_d2 = "^([1-3IlzZ]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
-    re_d3 = "([1-3IlzZ]?" + digits + "(st|nd|rd|th)? ?[A-Za-z]{3,}[,.] ?[I1l]" + digits + "{3})" # towards the end, example: 25th February, 1929
+    re_d2 = "^([1-3IlzZr]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
+    re_d3 = "(([1-3IlzZr]?" + digits + ")(st|nd|rd|th)? ?([A-Za-z]{3,})[,.] ?([I1lr]" + digits + "{3}))" # towards the end, example: 25th February, 1929
 
     dt = get_date_type(df)
     re_d = None
