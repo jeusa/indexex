@@ -99,40 +99,55 @@ def is_double_paged(pdf_df, borders):
 
 def extract_dates(rec_df):
     df = rec_df.copy()
-    df["full_date"] = ""
-    df["day"] = 0
-    df["month"] = ""
-    df["year"] = 0
+    df["extracted_date"] = ""
+    df["extracted_day"] = ""
+    df["extracted_month"] = ""
+    df["extracted_year"] = ""
 
-    digits = "[0-9oOIlSQrizZ]"
-    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?[1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # in the beginning, example: Nov. 4 | July 25th
-    re_d2 = "^([1-3IlzZr]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
-    re_d3 = "(([1-3IlzZr]?" + digits + ")(st|nd|rd|th)? ?([A-Za-z]{3,})[,.] ?([I1lr]" + digits + "{3}))" # towards the end, example: 25th February, 1929
-
+    digits = "[0-9oOIltriSQzZ]"
+    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, example: Nov. 4 | July 25th
+    re_d2 = "^(([1-3IirltzZ]?" + digits + ")[/,;.]{1,2}([I1l]{0,3}[VX]?[I1l]{0,3})[/,;.]{1,2}" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
+    re_d3 = "(([1-3IirltzZr]?" + digits + ")(st|nd|rd|fd|th)? ?([A-Za-z]{3,})[,.]? ?([Ii1lrt]" + digits + "{3}))" # towards the end, example: 25th February, 1929
     dt = get_date_type(df)
     re_d = None
+    day_g = 0
+    month_g = 0
 
     if dt > -1:
         if dt==1:
             re_d = re_d1
+            day_g = 3
+            month_g = 2
         if dt==2:
             re_d = re_d2
+            day_g = 2
+            month_g = 3
         if dt==3:
             re_d = re_d3
+            day_g = 2
+            month_g = 4
 
         for i, row in df.iterrows():
+            text = re.sub("[\"'`“´‘]", "", row["text"])
+            d = None
+
+            if dt != 2:
+                text = re.sub("[,.]", "", text)
             if dt != 3:
-                d = re.search(re_d, row["text"])
+                d = re.search(re_d, text)
             if dt == 3:
-                for m in re.finditer(re_d, row["text"]):
+                for m in re.finditer(re_d, text):
                     d = m
 
             if not d == None:
-                df.loc[i, "full_date"] = d.group(1)
+                df.loc[i, "extracted_date"] = d.group(1)
+                df.loc[i, "extracted_day"] = d.group(day_g)
+                df.loc[i, "extracted_month"] = d.group(month_g)
 
-                if dt!=1:
+                if dt != 1:
                     y = re.search(digits + "{4}", d.group(1))
-                    df.loc[i, "year"] = y.group()
+                    df.loc[i, "extracted_year"] = y.group()
+
 
     return df
 

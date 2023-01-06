@@ -12,7 +12,7 @@ def make_lines_df_from_ocr(pdf_df):
     df["x1"] = df["x0"] + df["width"]
     df["y1"] = df["y0"] + df["height"]
     #reg_art = "^\W+(?<!\()"
-    reg_art = "^[\W_]*([oeau]{2,})?\s?[\W_]*(?<!\()"
+    reg_art = "^[\W_]*([oeau]{2,})?\s?[\W_]*(?<!\()"    # regex for artifacts
 
     page, lines_text, x0, x1, y0, y1 = [], [], [], [], [], []
     art = []
