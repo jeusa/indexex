@@ -6,6 +6,7 @@ import lines
 import group
 import label
 import records
+import date
 
 
 def extract_indexes(pdf_df, verbose=True, double_paged=None, save_to=None):
@@ -32,7 +33,7 @@ def extract_indexes(pdf_df, verbose=True, double_paged=None, save_to=None):
     ind_df = label.improve_country_classification(ind_df)
 
     ind_df = records.extract_records(ind_df)
-    ind_df = extract_dates(ind_df)
+    ind_df = date.extract_dates(ind_df)
 
     if not save_to == None:
         ind_df.to_csv(save_to, index=False)
@@ -95,99 +96,3 @@ def is_double_paged(pdf_df, borders):
         return True
 
     return False
-
-
-def extract_dates(rec_df):
-    df = rec_df.copy()
-    df["extracted_date"] = ""
-    df["extracted_day"] = ""
-    df["extracted_month"] = ""
-    df["extracted_year"] = ""
-
-    digits = "[0-9oOIltriSQzZ]"
-    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, example: Nov. 4 | July 25th
-    re_d2 = "^(([1-3IirltzZ]?" + digits + ")[/,;.]{1,2}([I1l]{0,3}[VX]?[I1l]{0,3})[/,;.]{1,2}" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
-    re_d3 = "(([1-3IirltzZr]?" + digits + ")(st|nd|rd|fd|th)? ?([A-Za-z]{3,})[,.]? ?([Ii1lrt]" + digits + "{3}))" # towards the end, example: 25th February, 1929
-    dt = get_date_type(df)
-    re_d = None
-    day_g = 0
-    month_g = 0
-
-    if dt > -1:
-        if dt==1:
-            re_d = re_d1
-            day_g = 3
-            month_g = 2
-        if dt==2:
-            re_d = re_d2
-            day_g = 2
-            month_g = 3
-        if dt==3:
-            re_d = re_d3
-            day_g = 2
-            month_g = 4
-
-        for i, row in df.iterrows():
-            text = re.sub("[\"'`“´‘]", "", row["text"])
-            d = None
-
-            if dt != 2:
-                text = re.sub("[,.]", "", text)
-            if dt != 3:
-                d = re.search(re_d, text)
-            if dt == 3:
-                for m in re.finditer(re_d, text):
-                    d = m
-
-            if not d == None:
-                df.loc[i, "extracted_date"] = d.group(1)
-                df.loc[i, "extracted_day"] = d.group(day_g)
-                df.loc[i, "extracted_month"] = d.group(month_g)
-
-                if dt != 1:
-                    y = re.search(digits + "{4}", d.group(1))
-                    df.loc[i, "extracted_year"] = y.group()
-
-
-    return df
-
-
-def get_date_type(rec_df):
-
-    # stricter version of the date regex's
-    digits = "[0-9]"
-    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?[1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # in the beginning, example: Nov. 4 | July 25th
-    re_d2 = "^([1-3]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
-    re_d3 = "([1-3]?" + digits + "(st|nd|rd|th)? ?[A-Za-z]{3,}[,.] ?[I1l]" + digits + "{3})" # towards the end, example: 25th February, 1929
-
-    samp = rec_df.sample(frac=1/10)
-    samp["date_type"] = -1
-
-    for i, row in samp.iterrows():
-        t = row["text"]
-        dt = -1
-
-        d1 = re.search(re_d1, t)
-        d2 = re.search(re_d2, t)
-        d3 = None
-
-        for m in re.finditer(re_d3, t):
-            d3 = m
-
-        if d3 != None:
-            dt = 3
-        if d2 != None:
-            dt = 2
-        if d1 != None:
-            dt = 1
-
-        samp.loc[i, ["date_type"]] = dt
-
-    date_type = samp.groupby("date_type").count().sort_values("country", ascending=False)
-
-    if not date_type.empty:
-        date_type = date_type.iloc[0].name
-    else:
-        date_type = -1
-
-    return date_type
