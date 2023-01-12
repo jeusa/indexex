@@ -9,7 +9,7 @@ import records
 import date
 
 
-def extract_indexes(pdf_df, verbose=True, double_paged=None, save_to=None):
+def extract_indexes(pdf_df, file_name, verbose=True, double_paged=None, save_to=None):
     df = lines.make_lines_df_from_ocr(pdf_df)
 
     bins_x0, bins_x1, x0_n = group.group_line_starts_ends(df)
@@ -33,7 +33,7 @@ def extract_indexes(pdf_df, verbose=True, double_paged=None, save_to=None):
     ind_df = label.improve_country_classification(ind_df)
 
     ind_df = records.extract_records(ind_df)
-    ind_df = date.extract_dates(ind_df)
+    ind_df = date.extract_dates(ind_df, file_name)
 
     if not save_to == None:
         ind_df.to_csv(save_to, index=False)

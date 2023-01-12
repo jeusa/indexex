@@ -4,7 +4,7 @@ import re
 from difflib import get_close_matches
 
 
-def extract_dates(rec_df):
+def extract_dates(rec_df, file_name):
     df = rec_df.copy()
     df["extracted_date"] = ""
     df["extracted_day"] = ""
@@ -12,7 +12,7 @@ def extract_dates(rec_df):
     df["extracted_year"] = ""
 
     digits = "[0-9oOIltriSQzZ]"
-    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, exampldtdt   e: Nov. 4 | July 25th
+    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, example: Nov. 4 | July 25th
     re_d2 = "^(([1-3IirltzZ]?" + digits + ")[/,;.]{1,2}([I1l]{0,3}[VX]?[I1l]{0,3})[/,;.]{1,2}" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
     re_d3 = "(([1-3IirltzZr]?" + digits + ")(st|nd|rd|fd|th)? ?([A-Za-z]{3,})[,.]? ?([Ii1lrt]" + digits + "{3}))" # towards the end, example: 25th February, 1929
     dt = get_date_type(df)
@@ -55,7 +55,7 @@ def extract_dates(rec_df):
                     y = re.search(digits + "{4}", d.group(1))
                     df.loc[i, "extracted_year"] = y.group()
 
-    df = norm_dates(df, dt)
+    df = norm_dates(df, dt, file_name)
 
     return df
 
@@ -101,7 +101,7 @@ def get_date_type(rec_df):
     return date_type
 
 
-def norm_dates(rec_df, date_type):
+def norm_dates(rec_df, date_type, file_name):
     df = rec_df.copy()
 
     df.insert(3, "date", "")
@@ -119,6 +119,14 @@ def norm_dates(rec_df, date_type):
         if month != None:
             df.loc[i, "year"] = year
             df.loc[i, "date"] = f"{day}.{month}."
+
+    if date_type == 1:
+        file_year = re.search("\d{4}", file_name)
+        year =  0
+
+        if file_year != None:
+            year = file_year.group()
+            df.loc[df["date"] != "", "year"] = year
 
     return df
 
