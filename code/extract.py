@@ -34,6 +34,7 @@ def extract_indexes(pdf_df, file_name, verbose=True, double_paged=None, save_to=
 
     ind_df = records.extract_records(ind_df)
     ind_df = date.extract_dates(ind_df, file_name)
+    ind_df = clean_text(ind_df)
 
     if not save_to == None:
         ind_df.to_csv(save_to, index=False)
@@ -96,3 +97,19 @@ def is_double_paged(pdf_df, borders):
         return True
 
     return False
+
+
+def clean_text(rec_df):
+    df = rec_df.copy()
+
+    reg_w = " {2,}"
+    reg_p = "( *[\.;,+] *)+$"
+
+    for i, row in df.iterrows():
+        t = row["text"]
+        t = re.sub(reg_p, "", t)
+        t = re.sub(reg_w, " ", t)
+        t = t.strip()
+        df.loc[i, "text"] = t
+
+    return df

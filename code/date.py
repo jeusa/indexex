@@ -10,11 +10,12 @@ def extract_dates(rec_df, file_name):
     df["extracted_day"] = ""
     df["extracted_month"] = ""
     df["extracted_year"] = ""
+    df["full_text"] = df["text"]
 
     digits = "[0-9oOIltriSQzZ]"
-    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, example: Nov. 4 | July 25th
+    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, example: Nov. 4 | July 25th
     re_d2 = "^(([1-3IirltzZ]?" + digits + ")[/,;.]{1,2}([I1l]{0,3}[VX]?[I1l]{0,3})[/,;.]{1,2}" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
-    re_d3 = "(([1-3IirltzZr]?" + digits + ")(st|nd|rd|fd|th)? ?([A-Za-z]{3,})[,.]? ?([Ii1lrt]" + digits + "{3}))" # towards the end, example: 25th February, 1929
+    re_d3 = "(([1-3IirltzZr]?" + digits + ")(st|nd|rd|fd|th)? ([A-Za-z]{3,})[,.]? ?([Ii1lrt]" + digits + "{3})\.?)" # towards the end, example: 25th February, 1929
     dt = get_date_type(df)
     re_d = None
     day_g = 0
@@ -55,6 +56,8 @@ def extract_dates(rec_df, file_name):
                     y = re.search(digits + "{4}", d.group(1))
                     df.loc[i, "extracted_year"] = y.group()
 
+                df.loc[i, "text"] = re.sub(re_d, "", row["text"])
+
     df = norm_dates(df, dt, file_name)
 
     return df
@@ -64,9 +67,9 @@ def get_date_type(rec_df):
 
     # stricter version of the date regex's
     digits = "[0-9]"
-    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ?[1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # in the beginning, example: Nov. 4 | July 25th
+    re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) [1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # in the beginning, example: Nov. 4 | July 25th
     re_d2 = "^([1-3]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
-    re_d3 = "([1-3]?" + digits + "(st|nd|rd|th)? ?[A-Za-z]{3,}[,.] ?[I1l]" + digits + "{3})" # towards the end, example: 25th February, 1929
+    re_d3 = "([1-3]?" + digits + "(st|nd|rd|th)? [A-Za-z]{3,}[,.] ?[I1l]" + digits + "{3})" # towards the end, example: 25th February, 1929
 
     samp = rec_df.sample(frac=1/10)
     samp["date_type"] = -1
