@@ -48,7 +48,16 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
 
 
 # correct x0_type for pages where something went wrong
-def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
+def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
+
+    d = 0
+    if mode=="fitz":
+        d = 4
+    elif mode=="tess":
+        d = 20
+    else:
+        raise ValueError(f"groups_lines() got an unknown value for parameter mode: {mode}")
+
     df = lines_df.copy()
     start_page = lines_df["page"].min()
 
@@ -58,7 +67,7 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     tw.sort()
     width_median = tw[int(len(tw)/2)]
 
-    f = filter(lambda w: (not util.similar_to(w, width_median, 20)), text_widths) # filter widths that differ from the rest
+    f = filter(lambda w: (not util.similar_to(w, width_median, d)), text_widths) # filter widths that differ from the rest
     f = list(f)
 
     p = []
@@ -71,7 +80,7 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
     # correct wrong x0_type (and x1_type) for p_g
-    bins = group.get_line_start_end_bins(df.loc[df["page"].isin(p_g)])
+    bins = group.get_line_start_end_bins(df.loc[df["page"].isin(p_g)], mode)
     bins_x0_cor = group.get_relevant_x0_bins(bins[0], x0_n, drop_first=True) # drop bin on the very left
     df_cor = assign_types(df.loc[df["page"].isin(p_g)], bins_x0_cor, bins_x1.loc[bins_x1["page"].isin(p_g)], x0_n)
     df.loc[df["page"].isin(p_g), ["x0_type", "x1_type"]] = df_cor[["x0_type", "x1_type"]]
@@ -79,7 +88,7 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n):
     return df, p_l, p_g
 
 
-# approve x0_type correction for pages where the widtht seemed to small
+# approve x0_type correction for pages where the width seemed to small
 def approve_correction(orig_df, cor_df, p_l):
     df = cor_df.copy()
 
@@ -94,7 +103,7 @@ def approve_correction(orig_df, cor_df, p_l):
         start_counts_c.append(c)
 
     for i in range(len(start_counts)):
-        if (start_counts_c[i] <= 2) & (start_counts_c[i] < start_counts[i]): # after correction significantly less start lines
+        if (start_counts_c[i] <= 2) & (start_counts_c[i] < start_counts[i]): # after correction significantly less start lines -> reverse correction
             cor_df.loc[cor_df["page"]==p_l[i]] = orig_df.loc[orig_df["page"]==p_l[i]]
 
     return cor_df

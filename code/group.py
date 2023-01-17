@@ -7,9 +7,16 @@ import lines
 
 
 # Sort the lines into bins containing lines with similar values for parameter by
-def group_lines(df, by):
-    #d = 4 old value without ocr
-    d = 20
+def group_lines(df, by, mode):
+
+    d = 0
+    if mode=="fitz":
+        d = 4
+    elif mode=="tess":
+        d = 20
+    else:
+        raise ValueError(f"groups_lines() got an unknown value for parameter mode: {mode}")
+
     last = "last_" + by
     last_m = last + "_mean"
     bins = pd.DataFrame(columns=[by, "lines", last, last_m, "count"])
@@ -20,20 +27,15 @@ def group_lines(df, by):
 
         if poss_bin.empty:
             new_row = pd.DataFrame({
-                by: [x0],
-                "lines": [index],
-                last: [x0],
+                by: [[x0]],
+                "lines": [[index]],
+                last: [[x0]],
                 last_m: [x0],
                 "count": 1
             })
             bins = pd.concat([new_row, bins.loc[:]]).reset_index(drop=True)
         else:
-            b = bins.iloc[poss_bin.index[-1]]
-
-            if not type(b[0]) is list:
-                b[0] = [b[0]]
-                b[1] = [b[1]]
-                b[2] = [b[2]]
+            b = bins.iloc[poss_bin.index[-1]].copy()
 
             b[by].append(x0)
             b["lines"].append(index)
@@ -43,27 +45,25 @@ def group_lines(df, by):
                 b[last].pop(0)
             b[last].append(x0)
 
-            last_mean = b[last]
-            if type(last_mean) is list:
-                last_mean = sum(b[last]) / len(b[last])
+            last_mean = sum(b[last]) / len(b[last])
             b[last_m] = last_mean
-
+            bins.loc[b.name] = b
 
     return bins
 
 
-def get_line_start_end_bins(lines_df):
+def get_line_start_end_bins(lines_df, mode):
     df = lines_df.copy()
 
     bins_x0 = pd.DataFrame(columns=["x0", "lines", "last_x0", "last_x0_mean", "count", "page"])
     bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "last_x1_mean", "count", "page"])
 
     for page, frame in df.groupby("page"):
-        b = group_lines(frame, "x0")
+        b = group_lines(frame, "x0", mode)
         b["page"] = page
         bins_x0 = pd.concat([bins_x0, b])
 
-        c = group_lines(frame, "x1")
+        c = group_lines(frame, "x1", mode)
         c["page"] = page
         bins_x1 = pd.concat([bins_x1, c])
 
@@ -98,10 +98,10 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
     return bins_x0_rel
 
 
-def group_line_starts_ends(lines_df):
+def group_line_starts_ends(lines_df, mode):
     df = lines_df.copy()
 
-    bins_x0, bins_x1, x0_n = get_line_start_end_bins(df)
+    bins_x0, bins_x1, x0_n = get_line_start_end_bins(df, mode)
 
     bins_x1_max = pd.DataFrame()
     for p_no, frame in bins_x1.groupby("page"):

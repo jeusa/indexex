@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import os
 
 import util
 import lines
@@ -9,23 +10,47 @@ import records
 import date
 
 
-def extract_indexes(pdf_df, file_name, verbose=True, double_paged=None, save_to=None):
-    df = lines.make_lines_df_from_ocr(pdf_df)
+def extract_indexes_pdf(pdf_path, verbose=True, double_paged=None, save_to=None):
 
-    bins_x0, bins_x1, x0_n = group.group_line_starts_ends(df)
+    pdf, pdf_dict = util.read_pdf(pdf_path)
+    lines_df = lines.make_lines_df(pdf_dict)
+    lines_df = lines.merge_close_lines(lines_df)
+    ind_df = extract_indexes(lines_df, os.path.basename(pdf_path), "fitz", verbose=verbose, double_paged=double_paged, save_to=save_to)
+
+    return ind_df
+
+
+def extract_indexes_tess(tess_df_path, verbose=True, double_paged=None, save_to=None):
+
+    pdf_df = pd.read_csv(tess_df_path)
+    ind_df = extract_indexes(pdf_df, os.path.basename(tess_df_path), "tess", verbose=verbose, double_paged=double_paged, save_to=save_to)
+
+    return ind_df
+
+
+def extract_indexes(data_frame, file_name, mode, verbose=True, double_paged=None, save_to=None):
+
+    lines_df = data_frame.copy()
+    pdf_df = data_frame.copy()
+
+    if mode=="tess":
+        lines_df = lines.make_lines_df_from_ocr(data_frame)
+
+    bins_x0, bins_x1, x0_n = group.group_line_starts_ends(lines_df, mode)
     borders = lines.make_borders_df(bins_x0, bins_x1)
 
-    if double_paged:
-        return extract_double_paged_indexes(pdf_df, borders, verbose)
-
-    elif double_paged == None:
-        if is_double_paged(pdf_df, borders):
+    if mode=="tess": # extraction for double paged documents only works with tesseract data frames so far
+        if double_paged:
             return extract_double_paged_indexes(pdf_df, borders, verbose)
 
-    df = label.assign_types(df, bins_x0, bins_x1, x0_n)
+        elif double_paged == None:
+            if is_double_paged(pdf_df, borders):
+                return extract_double_paged_indexes(pdf_df, borders, verbose)
+
+    df = label.assign_types(lines_df, bins_x0, bins_x1, x0_n)
     df = label.assign_labels(df, x0_n)
 
-    ind_df, p_l, p_g = label.correct_x0_types(df, bins_x0, bins_x1, x0_n)
+    ind_df, p_l, p_g = label.correct_x0_types(df, bins_x0, bins_x1, x0_n, mode)
     ind_df = label.assign_labels(ind_df, x0_n)
     ind_df = label.approve_correction(df, ind_df, p_l)
 
