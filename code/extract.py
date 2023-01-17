@@ -102,13 +102,17 @@ def is_double_paged(pdf_df, borders):
 def clean_text(rec_df):
     df = rec_df.copy()
 
+    reg_s = "^[^a-zA-Z0-9]+"
     reg_w = " {2,}"
     reg_p = "( *[\.;,+] *)+$"
 
     for i, row in df.iterrows():
         t = row["text"]
+
+        t = re.sub(reg_s, "", t)
         t = re.sub(reg_p, "", t)
         t = re.sub(reg_w, " ", t)
+
         t = t.strip()
         df.loc[i, "text"] = t
 

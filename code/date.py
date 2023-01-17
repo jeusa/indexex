@@ -59,6 +59,7 @@ def extract_dates(rec_df, file_name):
                 df.loc[i, "text"] = re.sub(re_d, "", row["text"])
 
     df = norm_dates(df, dt, file_name)
+    df = df.drop(columns=["extracted_day", "extracted_month", "extracted_year"])
 
     return df
 
