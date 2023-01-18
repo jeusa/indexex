@@ -42,9 +42,9 @@ def list_files(directory, suffix='', recursive=True):
     return files
 
 
-def read_pdf(path, page_no_start=1, print_info=True):
+def read_pdf_old(path, page_no_start=1, print_info=True): # is this still needed?
 
-    pdf_pages = []
+    pdf_words = []
     pdf_dicts = []
 
     if print_info:
@@ -53,17 +53,35 @@ def read_pdf(path, page_no_start=1, print_info=True):
 
     with fitz.open(path) as pdf:
         for page in pdf:
-            pdf_pages.append(page.get_text())
+            pdf_words.append(page.get_text("words"))
 
-            pdf_dicts.append(page.get_text('dict', flags=~fitz.TEXT_PRESERVE_IMAGES))
+            pdf_dicts.append(page.get_text("dict", flags=~fitz.TEXT_PRESERVE_IMAGES))
 
     if print_info:
-        print("Finished reading", len(pdf_pages)-(page_no_start-1), "page(s)")
+        print("Finished reading", len(pdf_words)-(page_no_start-1), "page(s)")
 
-    set_page_size(pdf_dicts)
-    set_first_page_no(page_no_start)
+    set_page_size(pdf_dicts) # is this still needed?
+    set_first_page_no(page_no_start) # is this still needed?
 
-    return pdf_pages[page_no_start-1:], pdf_dicts[page_no_start-1:]
+    return pdf_words[page_no_start-1:], pdf_dicts[page_no_start-1:]
+
+
+def read_pdf(path, start_page=1, verbose=True):
+
+    pdf_words = []
+
+    if verbose:
+        print("Reading pdf from", path)
+        print("...")
+
+    with fitz.open(path) as pdf:
+        for page in pdf:
+            pdf_words.append(page.get_text("words"))
+
+    if verbose:
+        print("Finished reading", len(pdf_words)-(start_page-1), "page(s)")
+
+    return pdf_words[start_page-1:]
 
 
 def ocr(file_path, start_page=1, verbose=True, save_to=None):

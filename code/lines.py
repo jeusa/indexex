@@ -8,16 +8,15 @@ def make_lines_df_from_ocr(pdf_df):
     df = pdf_df.copy()
 
     df = df.dropna(subset=["text"])
-    df = df.rename(columns={"left": "x0", "top": "y0"})
+    df = df.rename(columns={"left": "x0", "top": "y0", "page_num": "page"})
     df["x1"] = df["x0"] + df["width"]
     df["y1"] = df["y0"] + df["height"]
-    #reg_art = "^\W+(?<!\()"
     reg_art = "^[\W_]*([oeau]{2,})?\s?[\W_]*(?<!\()"    # regex for artifacts
 
     page, lines_text, x0, x1, y0, y1 = [], [], [], [], [], []
     art = []
 
-    for p_no, page_frame in df.groupby("page_num"):
+    for p_no, page_frame in df.groupby("page"):
         for b, block in page_frame.groupby("block_num"):
             for p, par in block.groupby("par_num"):
                 for no, line in par.groupby("line_num"):
@@ -85,7 +84,7 @@ def make_lines_df_from_ocr(pdf_df):
     return lines_df
 
 
-def make_lines_df(dicts, page_no_start=1):
+def make_lines_df_from_dicts(dicts, page_no_start=1): # is this still needed?
 
     page_lines = []
     lines_bbox = []
@@ -100,7 +99,7 @@ def make_lines_df(dicts, page_no_start=1):
                 for s in l["spans"]:
                     line.append(s["text"])
 
-                page_lines.append(line)
+                page_lines.append(" ".join(line))
                 lines_bbox.append(bbox)
                 page_no.append(page_counter)
         page_counter += 1
@@ -138,8 +137,8 @@ def merge_close_lines(lines_df, distance=4):
         for r in l[1].iterrows():
             line.append(r[1]["line_text"])
 
-        lines.append(" ".join(util.flatten(line)))
-        line_spans.append(util.flatten(line))
+        lines.append(" ".join(line))
+        line_spans.append(line)
 
         x0.append(l[1]["x0"].min())
         y0.append(l[1]["y0"].min())

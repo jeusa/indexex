@@ -45,7 +45,7 @@ def extract_indexes(data_frame, file_name, mode, verbose=True, double_paged=None
 
         elif double_paged == None:
             if is_double_paged(pdf_df, borders):
-                return extract_double_paged_indexes(pdf_df, borders, verbose)
+                return extract_double_paged_indexes(pdf_df, borders, file_name, mode, verbose)
 
     df = label.assign_types(lines_df, bins_x0, bins_x1, x0_n)
     df = label.assign_labels(df, x0_n)
