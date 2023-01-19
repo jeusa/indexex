@@ -7,15 +7,12 @@ import lines
 
 
 # Sort the lines into bins containing lines with similar values for parameter by
-def group_lines(df, by, mode):
+def group_lines(df, by, mode=None, d=0):
 
-    d = 0
     if mode=="fitz":
         d = 4
     elif mode=="tess":
         d = 20
-    else:
-        raise ValueError(f"groups_lines() got an unknown value for parameter mode: {mode}")
 
     last = "last_" + by
     last_m = last + "_mean"
