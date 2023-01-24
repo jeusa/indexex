@@ -6,18 +6,6 @@ import pandas as pd
 from pdf2image import convert_from_path
 
 
-page_size = (0,0)
-page_start = 1
-
-def set_page_size(dicts):
-    global page_size
-    page_size = (dicts[0]["width"], dicts[0]["height"])
-
-def set_first_page_no(p_no):
-    global page_start
-    page_start = p_no
-
-
 def list_files(directory, suffix='', recursive=True):
 
     if not directory.endswith(os.sep):
@@ -42,34 +30,11 @@ def list_files(directory, suffix='', recursive=True):
     return files
 
 
-def read_pdf_old(path, page_no_start=1, print_info=True): # is this still needed?
+def read_pdf(path, start_page=1, verbose=True):
 
     pdf_words = []
     pdf_dicts = []
 
-    if print_info:
-        print("Reading pdf from", path)
-        print("...")
-
-    with fitz.open(path) as pdf:
-        for page in pdf:
-            pdf_words.append(page.get_text("words"))
-
-            pdf_dicts.append(page.get_text("dict", flags=~fitz.TEXT_PRESERVE_IMAGES))
-
-    if print_info:
-        print("Finished reading", len(pdf_words)-(page_no_start-1), "page(s)")
-
-    set_page_size(pdf_dicts) # is this still needed?
-    set_first_page_no(page_no_start) # is this still needed?
-
-    return pdf_words[page_no_start-1:], pdf_dicts[page_no_start-1:]
-
-
-def read_pdf(path, start_page=1, verbose=True):
-
-    pdf_words = []
-
     if verbose:
         print("Reading pdf from", path)
         print("...")
@@ -77,11 +42,12 @@ def read_pdf(path, start_page=1, verbose=True):
     with fitz.open(path) as pdf:
         for page in pdf:
             pdf_words.append(page.get_text("words"))
+            pdf_dicts.append(page.get_text('dict', flags=~fitz.TEXT_PRESERVE_IMAGES))
 
     if verbose:
         print("Finished reading", len(pdf_words)-(start_page-1), "page(s)")
 
-    return pdf_words[start_page-1:]
+    return pdf_words[start_page-1:], pdf_dicts[start_page-1:]
 
 
 def ocr(file_path, start_page=1, verbose=True, save_to=None):

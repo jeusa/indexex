@@ -2,6 +2,7 @@ import pandas as pd
 import re
 
 import util
+import group
 
 
 def make_lines_df_from_ocr(pdf_df):
@@ -81,15 +82,42 @@ def make_lines_df_from_ocr(pdf_df):
     })
     lines_df["dx"] = lines_df["x1"] - lines_df["x0"]
 
+    lines_df = remove_useless_lines(lines_df)
+
     return lines_df
 
 
-def make_lines_df_from_dicts(dicts, page_no_start=1): # is this still needed?
+def make_words_df(words_list, start_page=1):
+
+    page, words, x0, y0, x1, y1 = [], [], [], [], [], []
+
+    for i, p in enumerate(words_list):
+        for w in p:
+            page.append(i+start_page)
+            words.append(w[4])
+            x0.append(w[0])
+            y0.append(w[1])
+            x1.append(w[2])
+            y1.append(w[3])
+
+    words_df = pd.DataFrame({
+        "text": words,
+        "x0": x0,
+        "y0": y0,
+        "x1": x1,
+        "y1": y1,
+        "page": page
+    })
+
+    return words_df
+
+
+def make_lines_df_from_dicts(dicts, page_start=1):
 
     page_lines = []
     lines_bbox = []
     page_no = []
-    page_counter = util.page_start
+    page_counter = page_start
 
     for p in dicts:
         for b in p["blocks"]:
@@ -205,3 +233,22 @@ def calc_text_borders(bins_x0, bins_x1):
     x1 = sum(x1)/len(x1)
 
     return (x0, x1)
+
+
+# Returns the mean x0 value for the page middle, used for double paged documents. Also filters out
+# wrong borders, so they won´t be used in the calculation.
+def get_mean_dx(words_df, borders, mode):
+
+    d = 0
+    if mode=="fitz":
+        d = 15
+    elif mode=="tess":
+        d = 75
+
+    bins_dx = group.group_lines(borders, "dx", d=d)
+    bins_dx = bins_dx.sort_values("last_dx_mean", ascending=False)
+    pages = bins_dx["count"].sum()
+    bins_dx = bins_dx.loc[bins_dx["count"] > 0.25*pages]
+    big_dx = bins_dx.iloc[0]["dx"]
+
+    return sum(big_dx) / len(big_dx)
