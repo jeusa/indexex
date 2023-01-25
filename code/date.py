@@ -16,6 +16,8 @@ def extract_dates(rec_df, file_name):
     re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ([1-3IlzZr]?" + digits + ")(?![0-9])(st|nd|rd|fd|th)?)" # in the beginning, example: Nov. 4 | July 25th
     re_d2 = "^(([1-3IirltzZ]?" + digits + ")[/,;.]{1,2}([I1l]{0,3}[VX]?[I1l]{0,3})[/,;.]{1,2}" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
     re_d3 = "(([1-3IirltzZr]?" + digits + ")(st|nd|rd|fd|th)? ([A-Za-z]{3,})[,.]? ?([Ii1lrt]" + digits + "{3})\.?)" # towards the end, example: 25th February, 1929
+    re_d4 = "^(([1-3IlzZr]?" + digits + ")(st|nd|rd|fd|th)? ([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) ([Ii1lrt]" + digits + "{3})\.?)" # in the beginning, example: 16 Dec. 1965
+
     dt = get_date_type(df)
     re_d = None
     day_g = 0
@@ -26,14 +28,19 @@ def extract_dates(rec_df, file_name):
             re_d = re_d1
             day_g = 3
             month_g = 2
-        if dt==2:
+        elif dt==2:
             re_d = re_d2
             day_g = 2
             month_g = 3
-        if dt==3:
+        elif dt==3:
             re_d = re_d3
             day_g = 2
+            month_g = 3
+        elif dt==4:
+            re_d = re_d4
+            day_g = 2
             month_g = 4
+
 
         for i, row in df.iterrows():
             text = re.sub("[\"'`“´‘]", "", row["text"])
@@ -69,8 +76,9 @@ def get_date_type(rec_df):
     # stricter version of the date regex's
     digits = "[0-9]"
     re_d1 = "^(([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) [1-3]?" + digits + "(?![0-9])(st|nd|rd|th)?)" # in the beginning, example: Nov. 4 | July 25th
-    re_d2 = "^([1-3]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/11/198S
+    re_d2 = "^([1-3]?" + digits + "/[I1l]{0,3}[VX]?[I1l]{0,3}/" + digits + "{4})" # in the beginning, example: 13/III/1986 | 7/IX/1985
     re_d3 = "([1-3]?" + digits + "(st|nd|rd|th)? [A-Za-z]{3,}[,.] ?[I1l]" + digits + "{3})" # towards the end, example: 25th February, 1929
+    re_d4 = "^([1-3]?" + digits + "(st|nd|rd|th)? ([A-Za-z]{3}[.:,]{0,3}|[A-Za-z]{4}.?) 1" + digits + "{3})" # in the beginning, example: 16 Dec. 1965
 
     samp = rec_df.sample(frac=1/10)
     samp["date_type"] = -1
@@ -82,6 +90,7 @@ def get_date_type(rec_df):
         d1 = re.search(re_d1, t)
         d2 = re.search(re_d2, t)
         d3 = None
+        d4 = re.search(re_d4, t)
 
         for m in re.finditer(re_d3, t):
             d3 = m
@@ -92,6 +101,8 @@ def get_date_type(rec_df):
             dt = 2
         if d1 != None:
             dt = 1
+        if d4 != None:
+            dt = 4
 
         samp.loc[i, ["date_type"]] = dt
 

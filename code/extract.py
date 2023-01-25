@@ -15,7 +15,13 @@ def extract_indexes_pdf(pdf_path, start_page=1, verbose=True, double_paged=None,
     pdf_words, pdf_dicts = util.read_pdf(pdf_path, start_page)
 
     words_df = lines.make_words_df(pdf_words, start_page)
-    lines_df = lines.make_lines_df_from_dicts(pdf_dicts, start_page)
+
+    lines_df = lines_df_df.rename(columns={"text": "line_text"}) # make lines_df from words_df
+    lines_df["x0"] = [round(x, 2) for x in lines_df["x0"]]
+    lines_df["y0"] = [round(x, 2) for x in lines_df["y0"]]
+    lines_df["x1"] = [round(x, 2) for x in lines_df["x1"]]
+    lines_df["y1"] = [round(x, 2) for x in lines_df["y1"]]
+    #lines_df = lines.make_lines_df_from_dicts(pdf_dicts, start_page) # make lines_df from pdf_dicts
     lines_df = lines.merge_close_lines(lines_df)
     lines_df = lines.remove_useless_lines(lines_df)
 
