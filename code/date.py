@@ -12,7 +12,7 @@ def extract_dates(rec_df, file_name):
 
     day = "(?<![0-9])([1-3IltrizZ]?" + digit + ")(?![0-9])" # 4 | 31
     dayth = day + "(st|nd|rd|th)?" # 4th | 31st
-    month_short = "([A-Za-z]{4}|[A-Za-z]{3}[.:,]?)" # Dec. | June
+    month_short = "([A-Za-z]{4}\.?|[A-Za-z]{3}[.:,]?)" # Dec. | June | Sept.
     month_long = "([A-Za-z]{3,9})" # February
     year = "(" + one + "9"  + digit + "{2})"
 

@@ -8,9 +8,6 @@ from pdf2image import convert_from_path
 
 def list_files(directory, suffix='', recursive=True):
 
-    if not directory.endswith(os.sep):
-        directory = directory + os.sep
-
     files = []
     dir_files = os.listdir(directory)
 
@@ -19,13 +16,13 @@ def list_files(directory, suffix='', recursive=True):
         rec = recursive-1
 
     for f in dir_files:
+        cur_path = os.path.join(directory, f)
 
-        if f.lower().endswith(suffix):
-            files.append(directory + f)
-
-        elif ((recursive == True) | (recursive >= 1)) & os.path.isdir(directory + f):
-            sub_dir_files = list_files(directory + f, suffix, rec)
+        if ((recursive == True) | (recursive >= 1)) & os.path.isdir(cur_path):
+            sub_dir_files = list_files(cur_path, suffix, rec)
             files = files + sub_dir_files
+        elif f.lower().endswith(suffix) & (not os.path.isdir(cur_path)):
+            files.append(cur_path)
 
     return files
 

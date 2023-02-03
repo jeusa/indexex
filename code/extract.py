@@ -10,9 +10,55 @@ import records
 import date
 
 
+def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, verbose=True):
+
+    if not os.path.isdir(path_dir):
+        raise ValueError(f"{path_dir} is not a directory.")
+
+    suffix = ""
+
+    if mode == "fitz":
+        suffix = ".pdf"
+    elif mode == "tess":
+        suffix = ".csv"
+
+    files = util.list_files(path_dir, recursive=recursive, suffix=suffix)
+
+    for f in files:
+        extract_indexes_file(f, output_dir=output_dir, verbose=verbose)
+
+
+def extract_indexes_file(path, output_dir=None, start_page=1, verbose=True, double_paged=None):
+
+    if not os.path.isfile(path):
+        raise ValueError(f"{path} is not an existing file.")
+
+    f_name, f_suffix = os.path.splitext(path)
+    f_name = os.path.basename(f_name)
+
+    mode = None
+    if f_suffix == ".pdf":
+        mode = "fitz"
+    elif f_suffix == ".csv":
+        mode = "tess"
+
+    save_path = output_dir
+    if output_dir != None:
+
+        if not os.path.isdir(output_dir):
+            raise ValueError(f"{output_dir} is not a directory.")
+
+        save_path = os.path.join(output_dir, f_name + f"_{mode}.csv")
+
+    if mode=="fitz":
+        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, verbose=verbose, double_paged=double_paged)
+    elif mode=="tess":
+        return extract_indexes_tess(path, start_page=start_page, save_to=save_path, verbose=verbose, double_paged=double_paged)
+
+
 def extract_indexes_pdf(pdf_path, start_page=1, verbose=True, double_paged=None, save_to=None):
 
-    pdf_words, pdf_dicts = util.read_pdf(pdf_path, start_page)
+    pdf_words, pdf_dicts = util.read_pdf(pdf_path, start_page, verbose)
 
     words_df = lines.make_words_df(pdf_words, start_page)
 
@@ -43,13 +89,15 @@ def extract_indexes_tess(tess_df_path, start_page=1, verbose=True, double_paged=
 
 
 def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None):
+    if verbose:
+        print(f"Starting extraction for {file_name}...")
 
     bins_x0, bins_x1, x0_n = group.group_line_starts_ends(lines_df, mode)
     borders = lines.make_borders_df(bins_x0, bins_x1)
 
     if double_paged:
         if mode=="tess":
-            return extract_double_paged_indexes(words_df, borders, file_name, mode, verbose)
+            return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to)
         else:
             print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
             return None
@@ -58,7 +106,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
         if is_double_paged(words_df, borders, mode):
 
             if mode=="tess":
-                return extract_double_paged_indexes(words_df, borders, file_name, mode, verbose)
+                return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to)
             else:
                 print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
                 return None
@@ -77,6 +125,9 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
     ind_df = date.extract_dates(ind_df, file_name)
     ind_df = clean_text(ind_df)
 
+    if verbose:
+        print("Finished extraction")
+
     if not save_to == None:
         ind_df.to_csv(save_to, index=False)
 
@@ -86,7 +137,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
     return ind_df
 
 
-def extract_double_paged_indexes(words_df, borders, file_name, mode, verbose=True):
+def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mode="tess", verbose=True):
 
     if verbose:
         print("Extracting indexes from document with double-pages.")
@@ -113,8 +164,8 @@ def extract_double_paged_indexes(words_df, borders, file_name, mode, verbose=Tru
     lines_l = lines.make_lines_df_from_ocr(pdf_l)
     lines_r = lines.make_lines_df_from_ocr(pdf_r)
 
-    ind_l = extract_indexes(None, lines_l, file_name, mode, verbose=verbose, double_paged=False)
-    ind_r = extract_indexes(None, lines_r, file_name, mode, verbose=verbose, double_paged=False)
+    ind_l = extract_indexes(None, lines_l, file_name, mode, verbose=False, double_paged=False)
+    ind_r = extract_indexes(None, lines_r, file_name, mode, verbose=False, double_paged=False)
 
     idx_s = ind_l.shape[0]
     idx_e = idx_s + ind_r.shape[0]
@@ -123,6 +174,12 @@ def extract_double_paged_indexes(words_df, borders, file_name, mode, verbose=Tru
     ind_df = pd.concat([ind_l, ind_r])
     ind_df = ind_df.rename_axis("idx").sort_values(by=["page", "idx"])
     ind_df = ind_df.reset_index(drop=True)
+
+    if not save_to == None:
+        ind_df.to_csv(save_to, index=False)
+
+        if verbose:
+            print(f"Saved extracted indexes to {save_to}.")
 
     return ind_df
 
