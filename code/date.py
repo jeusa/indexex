@@ -12,8 +12,8 @@ def extract_dates(rec_df, file_name):
 
     day = "(?<![0-9])([1-3IltrizZ]?" + digit + ")(?![0-9])" # 4 | 31
     dayth = day + "(st|nd|rd|th)?" # 4th | 31st
-    month_short = "([A-Za-z]{4}\.?|[A-Za-z]{3}[.:,]?)" # Dec. | June | Sept.
-    month_long = "([A-Za-z]{3,9})" # February
+    month_short = "([A-Za-zé]{3,4}[.:,]?)" # Dec. | June | Sept.y
+    month_long = "([A-Za-zé]{3,9})" # February
     year = "(" + one + "9"  + digit + "{2})"
 
     # in the beginning, example: Nov. 4 | July 25th
@@ -25,8 +25,8 @@ def extract_dates(rec_df, file_name):
     # towards the end, example: 25th February, 1929
     re_d3 = dayth + " " + month_long + "[,.:]? " + year
 
-    # in the beginning, example: 16 Dec. 1965
-    re_d4 = "^" + dayth + " " + month_short + "[,.:]?( " + year + ")?"
+    # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
+    re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
     df = rec_df.copy()
     df["extracted_date"] = ""
@@ -61,7 +61,6 @@ def extract_dates(rec_df, file_name):
             day_g = 1
             month_g = 3
             year_g = 5
-
 
         for i, row in df.iterrows():
             text = re.sub("[\"'`“´‘]", "", row["text"])
@@ -98,8 +97,8 @@ def get_date_type(rec_df):
 
     day = "(?<![0-9])([1-3]?" + digit + ")(?![0-9])" # 4 | 31
     dayth = day + "(st|nd|rd|th)?" # 4th | 31st
-    month_short = "([A-Za-z]{4}|[A-Za-z]{3}\.?)" # Dec. | June
-    month_long = "([A-Za-z]{3,9})" # February
+    month_short = "([A-Za-zé]{3,4}\.?)" # Dec. | June | Sept.
+    month_long = "([A-Za-zé]{3,9})" # February
     year = "(" + one + "9"  + digit + "{2})"
 
     # in the beginning, example: Nov. 4 | July 25th
@@ -112,7 +111,7 @@ def get_date_type(rec_df):
     re_d3 = dayth + " " + month_long + "[,.:]? " + year
 
     # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
-    re_d4 = "^" + dayth + " " + month_short + "[,.:]?( " + year + ")?"
+    re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
     samp = rec_df.sample(min(max(rec_df.shape[0]//10, 10), rec_df.shape[0]))
     samp["date_type"] = -1
@@ -200,17 +199,26 @@ def correct_digit_recognition(dig):
 def norm_month(month, date_type, ignore_case=True):
     mon_l = list()
     month = str(month)
+    month = re.sub("[.,:]", "", month)
+
+    mon_l_french = []
+    mon_l_spanish = []
 
     if (date_type == 1) | (date_type == 4):
         mon_l = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        if date_type == 4:
+            mon_l_french = ["janv", "fév", "mars", "avril", "mai", "juin", "juillet", "aout", "sept", "oct", "nov", "déc"]
+            mon_l_spanish = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "sept", "oct", "nov", "dic"]
 
     elif date_type == 2:
         mon_l = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
         month = re.sub("[1il]", "I", month)
         ignore_case = False
 
-    elif date_type == 3:
+    elif (date_type == 3):
         mon_l = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        mon_l_french = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "aout", "septembre", "octobre", "novembre", "décembre"]
+        mon_l_spanish = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 
     else:
         return None
@@ -222,8 +230,22 @@ def norm_month(month, date_type, ignore_case=True):
         mon_l = [x.lower() for x in mon_l]
 
     sim = get_close_matches(month, mon_l, n=1, cutoff=0.2)
+    sim_french = get_close_matches(month, mon_l_french, n=1, cutoff=0.2)
+    sim_spanish = get_close_matches(month, mon_l_spanish, n=1, cutoff=0.2)
 
-    if len(sim) == 0:
+    fin_sim = get_close_matches(month, sim+sim_french+sim_spanish, n=1, cutoff=0.0)
+
+    if len(fin_sim) == 0:
         return None
 
-    return mon_l.index(sim[0])+1
+    sims = [x[0] if len(x)>0 else "" for x in [sim, sim_french, sim_spanish]]
+    lan_i = sims.index(fin_sim[0])
+
+    if lan_i == 0:
+        norm_month = mon_l.index(fin_sim[0]) + 1
+    elif lan_i == 1:
+        norm_month = mon_l_french.index(fin_sim[0]) + 1
+    elif lan_i == 2:
+        norm_month = mon_l_spanish.index(fin_sim[0]) + 1
+
+    return norm_month
