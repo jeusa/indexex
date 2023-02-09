@@ -10,7 +10,7 @@ import records
 import date
 
 
-def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, verbose=True):
+def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove_wrong=True, verbose=True):
 
     if not os.path.isdir(path_dir):
         raise ValueError(f"{path_dir} is not a directory.")
@@ -25,10 +25,10 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, verbos
     files = util.list_files(path_dir, recursive=recursive, suffix=suffix)
 
     for f in files:
-        extract_indexes_file(f, output_dir=output_dir, verbose=verbose)
+        extract_indexes_file(f, output_dir=output_dir, remove_wrong=remove_wrong, verbose=verbose)
 
 
-def extract_indexes_file(path, output_dir=None, start_page=1, verbose=True, double_paged=None):
+def extract_indexes_file(path, output_dir=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None):
 
     if not os.path.isfile(path):
         raise ValueError(f"{path} is not an existing file.")
@@ -51,12 +51,12 @@ def extract_indexes_file(path, output_dir=None, start_page=1, verbose=True, doub
         save_path = os.path.join(output_dir, f_name + f"_{mode}.csv")
 
     if mode=="fitz":
-        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, verbose=verbose, double_paged=double_paged)
+        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
     elif mode=="tess":
-        return extract_indexes_tess(path, start_page=start_page, save_to=save_path, verbose=verbose, double_paged=double_paged)
+        return extract_indexes_tess(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
 
 
-def extract_indexes_pdf(pdf_path, start_page=1, verbose=True, double_paged=None, save_to=None):
+def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
 
     pdf_words, pdf_dicts = util.read_pdf(pdf_path, start_page, verbose)
 
@@ -71,24 +71,24 @@ def extract_indexes_pdf(pdf_path, start_page=1, verbose=True, double_paged=None,
     lines_df = lines.merge_close_lines(lines_df)
     lines_df = lines.remove_useless_lines(lines_df)
 
-    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", verbose=verbose, double_paged=double_paged, save_to=save_to)
+    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to)
 
     return ind_df
 
 
-def extract_indexes_tess(tess_df_path, start_page=1, verbose=True, double_paged=None, save_to=None):
+def extract_indexes_tess(tess_df_path, start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
 
     pdf_df = pd.read_csv(tess_df_path)
 
     pdf_df = pdf_df.loc[pdf_df["page_num"] >= start_page]
     lines_df = lines.make_lines_df_from_ocr(pdf_df)
 
-    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(tess_df_path), mode="tess", verbose=verbose, double_paged=double_paged, save_to=save_to)
+    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(tess_df_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to)
 
     return ind_df
 
 
-def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None):
+def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None, remove_wrong=False):
     if verbose:
         print(f"Starting extraction for {file_name}...")
 
@@ -124,6 +124,9 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
     ind_df = records.extract_records(ind_df)
     ind_df = date.extract_dates(ind_df, file_name)
     ind_df = clean_text(ind_df)
+
+    if remove_wrong:
+        ind_df = ind_df.loc[ind_df["extracted_date"]!=""]
 
     if verbose:
         print("Finished extraction")
