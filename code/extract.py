@@ -15,20 +15,19 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
     if not os.path.isdir(path_dir):
         raise ValueError(f"{path_dir} is not a directory.")
 
-    suffix = ""
-
+    suffix = [".csv", ".pdf"]
     if mode == "fitz":
-        suffix = ".pdf"
-    elif mode == "tess":
-        suffix = ".csv"
+        suffix.remove(".csv")
 
-    files = util.list_files(path_dir, recursive=recursive, suffix=suffix)
+    files = []
+    for s in suffix:
+        files += util.list_files(path_dir, recursive=recursive, suffix=s)
 
     for f in files:
-        extract_indexes_file(f, output_dir=output_dir, remove_wrong=remove_wrong, verbose=verbose)
+        extract_indexes_file(f, output_dir=output_dir, mode=mode, remove_wrong=remove_wrong, verbose=verbose)
 
 
-def extract_indexes_file(path, output_dir=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None):
+def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None):
 
     if not os.path.isfile(path):
         raise ValueError(f"{path} is not an existing file.")
@@ -36,11 +35,16 @@ def extract_indexes_file(path, output_dir=None, start_page=1, remove_wrong=True,
     f_name, f_suffix = os.path.splitext(path)
     f_name = os.path.basename(f_name)
 
-    mode = None
-    if f_suffix == ".pdf":
-        mode = "fitz"
-    elif f_suffix == ".csv":
-        mode = "tess"
+    if (not f_suffix == ".pdf") & (not f_suffix == ".csv"):
+        raise ValueError(f"{f_suffix} is not a supported file type.")
+
+    if mode == None:
+        if f_suffix == ".pdf":
+            mode = "fitz"
+        elif f_suffix == ".csv":
+            mode = "tess"
+    elif (mode == "fitz") & (not f_suffix == ".pdf"):
+        raise ValueError("Mode fitz can only be used with pdf files.")
 
     save_path = output_dir
     if output_dir != None:
@@ -53,7 +57,9 @@ def extract_indexes_file(path, output_dir=None, start_page=1, remove_wrong=True,
     if mode=="fitz":
         return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
     elif mode=="tess":
-        return extract_indexes_tess(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
+        return extract_indexes_tess(path, file_type=f_suffix, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
+    else:
+        raise ValueError(f"{mode} is not a supported mode.")
 
 
 def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
@@ -76,14 +82,20 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
     return ind_df
 
 
-def extract_indexes_tess(tess_df_path, start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
+def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
 
-    pdf_df = pd.read_csv(tess_df_path)
+    file_type = re.sub("\.", "", file_type)
+    if file_type == "csv":
+        pdf_df = pd.read_csv(file_path)
+    elif file_type == "pdf":
+        pdf_df = util.ocr(file_path, verbose=verbose)
+    else:
+        raise ValueError(f"{file_type} is not a supported file type.")
 
     pdf_df = pdf_df.loc[pdf_df["page_num"] >= start_page]
     lines_df = lines.make_lines_df_from_ocr(pdf_df)
 
-    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(tess_df_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to)
+    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(file_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to)
 
     return ind_df
 

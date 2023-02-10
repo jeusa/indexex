@@ -70,10 +70,8 @@ def ocr(file_path, start_page=1, verbose=True, save_to=None):
 
     if not save_to == None:
         if os.path.isdir(save_to):
-            if not save_to.endswith(os.sep):
-                save_to += os.sep
 
-            save_path = save_to + os.path.basename(file_path).replace(".pdf", ".csv")
+            save_path = os.path.join(save_to, os.path.basename(file_path).replace(".pdf", ".csv"))
             pdf_df.to_csv(save_path, index=False)
 
             if verbose:
