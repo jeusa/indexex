@@ -1,4 +1,6 @@
-import fitz
+"""This script contains some helpful methods for pdfs, files and other things."""
+
+import fitz # PyMuPDF
 import os
 import pytesseract
 import pandas as pd
@@ -7,7 +9,22 @@ from pdf2image import convert_from_path
 
 
 def list_files(directory, suffix='', recursive=True):
+    """ Lists all files in directory (and its subdirectories) that end with suffix. 
 
+    Parameters
+    ----------
+    directory
+        path to directory that should be searched for files
+    suffix, optional
+        suffix for the files, by default ''
+    recursive, optional
+        defines if the path should be searched recursively, if type=int: how many
+        levels of subdirectories should be searched, by default True
+
+    Returns
+    -------
+        list with path to files in directory
+    """
     files = []
     dir_files = os.listdir(directory)
 
@@ -28,7 +45,22 @@ def list_files(directory, suffix='', recursive=True):
 
 
 def read_pdf(path, start_page=1, verbose=True):
+    """Reads a pdf file with fitz.
 
+    Parameters
+    ----------
+    path
+        path to pdf fle
+    start_page, optional
+        page from which reading should start, by default 1
+    verbose, optional
+        print infos, by default True
+
+    Returns
+    -------
+        list containing all pages and the words on that page with their coordinates,
+        list containing all pages and their corresponding dictionary
+    """
     pdf_words = []
     pdf_dicts = []
 
@@ -48,6 +80,23 @@ def read_pdf(path, start_page=1, verbose=True):
 
 
 def ocr(file_path, start_page=1, verbose=True, save_to=None):
+    """Uses tesseract for optical character recognition of the content of a pdf file.
+
+    Parameters
+    ----------
+    file_path
+        path to pdf file
+    start_page, optional
+        page from which ocr should start, by default 1
+    verbose, optional
+        print infos, by default True
+    save_to, optional
+        path where the tesseract data frame should be saved to, by default None
+
+    Returns
+    -------
+        tesseract data frame
+    """    
     if verbose:
         print(f"Converting pdf pages for {file_path} to images.")
 
@@ -83,9 +132,35 @@ def ocr(file_path, start_page=1, verbose=True, save_to=None):
 
 
 def flatten(t):
+    """Flattens a list of list to a list.
+
+    Parameters
+    ----------
+    t
+        list of list
+
+    Returns
+    -------
+        list
+    """    
     return [item for sublist in t for item in sublist]
 
 def similar_to(a, b, d):
+    """Checks if a-d < b < a+d.
+
+    Parameters
+    ----------
+    a
+        numeric value
+    b
+        numeric value
+    d
+        numeric value
+
+    Returns
+    -------
+        True if a-d < b < a+d, else False
+    """    
     if ((a+d>b) & (a-d<b)):
         return True
     return False
