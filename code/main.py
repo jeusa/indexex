@@ -6,7 +6,7 @@ import extract
 def defineArgumentParser():
     parser = argparse.ArgumentParser(description="This tool can be used to extract indexes of legal texts published by the ILO (International Labour Organisation).")
 
-    parser.add_argument("input_path", help="path to the file (pdf or tesseract data frame as csv) or directory")
+    parser.add_argument("input_path", help="path to the file (pdf or tesseract data frame as csv) or directory containing the files")
     parser.add_argument("output_dir", help="path to the directory where the extracted indexes will be written to")
     parser.add_argument("-v", "--verbose", help="print infos during extraction", action="store_true", default=False)
     parser.add_argument("-m", "--mode", help="define mode to be used to read the file, FITZ: reads a pdf which has ocr imbedded, TESS: uses the tesseract ocr engine to create new ocr for a pdf or the input file is a csv file containing a tesseract data frame")
@@ -25,7 +25,7 @@ if __name__=="__main__":
         m = str.lower(args.mode)
 
     if os.path.isdir(args.input_path):
-        extract.extract_indexes_dir(args.input_path, args.output_dir, verbose=args.verbose, remove_wrong=not args.keep_all, mode=m)
+        extract.extract_indexes_dir(args.input_path, args.output_dir, verbose=args.verbose, remove_wrong=not args.keep_all, mode=m, recursive=args.recursive)
     elif os.path.isfile(args.input_path):
         extract.extract_indexes_file(args.input_path, args.output_dir, verbose=args.verbose, start_page=args.start_page, remove_wrong=not args.keep_all, mode=m)
     else:
