@@ -1,3 +1,6 @@
+"""This script contains methods to work with the text lines of a pdf and to create a lines data frame
+that is used for the index extraction."""
+
 import pandas as pd
 import re
 
@@ -6,6 +9,21 @@ import group
 
 
 def make_lines_df_from_ocr(pdf_df):
+    """Makes a lines data frame from a tesseract data frame.
+
+    The method tries to filter out artifacts that are on the page before the line starts.
+    Tesseract usually recognizes these artifacts as characters.
+
+    Parameters
+    ----------
+    pdf_df
+        tesseract data frame
+
+    Returns
+    -------
+        lines data frame with: the text of each line, its bounding box coordinates,
+        the page number
+    """    
     df = pdf_df.copy()
 
     df = df.dropna(subset=["text"])
@@ -88,7 +106,21 @@ def make_lines_df_from_ocr(pdf_df):
 
 
 def make_words_df(words_list, start_page=1):
+    """Makes a words data frame from a list of words.
 
+    Parameters
+    ----------
+    words_list
+        list of list of words, one list per page,
+        is returned by util.read_pdf
+    start_page, optional
+        start page chosen for reading of pdf, by default 1
+
+    Returns
+    -------
+        words data frame with: text of the word, bounding box coordinates,
+        page number
+    """
     page, words, x0, y0, x1, y1 = [], [], [], [], [], []
 
     for i, p in enumerate(words_list):
@@ -113,7 +145,20 @@ def make_words_df(words_list, start_page=1):
 
 
 def make_lines_df_from_dicts(dicts, page_start=1):
+    """Makes a lines data frame from a list of pdf dictionaries.
 
+    Parameters
+    ----------
+    dicts
+        list of pdf dictionaries, returned by util.read_pdf
+    page_start, optional
+        start page chosen for reading of pdf, by default 1
+
+    Returns
+    -------
+        lines data frame with: the text of each line, its bounding box coordinates,
+        the page number
+    """
     page_lines = []
     lines_bbox = []
     page_no = []
@@ -146,10 +191,26 @@ def make_lines_df_from_dicts(dicts, page_start=1):
 
 
 def merge_close_lines(lines_df, distance=4):
+    """Merges lines that are close to each other to one line.
 
+    When the y0 coordinate of a line is within the range of the
+    y0 coordinate of the previous line, the lines are merged.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame
+    distance, optional
+        min y0 distance that should exist between lines, defines the range in which close lines
+        are merged, by default 4
+
+    Returns
+    -------
+        lines data frame
+    """
     df = lines_df.copy()
     df["dy"] = df["y0"].diff(periods=1).abs()
-    df["line_no"] = df["dy"].gt(3).cumsum()
+    df["line_no"] = df["dy"].gt(distance).cumsum()
 
     lines = []
     line_spans = []
@@ -188,7 +249,17 @@ def merge_close_lines(lines_df, distance=4):
 
 
 def remove_useless_lines(lines_df):
+    """Removes lines in a data frame that do not contain any meaningful text.
 
+    Parameters
+    ----------
+    lines_df
+        lines data frame
+
+    Returns
+    -------
+        lines data frame
+    """
     dumb_lines = []
     for row in lines_df.iterrows():
         if not re.search("[a-zA-Z0-9]", row[1]["line_text"]):
@@ -201,7 +272,19 @@ def remove_useless_lines(lines_df):
 
 
 def make_borders_df(bins_x0, bins_x1):
+    """Makes a borders data frame for the left and right border of the text on a page. 
 
+    Parameters
+    ----------
+    bins_x0
+        lines sorted into bins by x0, created by group.group_line_starts_ends
+    bins_x1
+        lines sorted into bins by x1, created by group.group_line_starts_ends
+
+    Returns
+    -------
+        borders data frame with: x0 and x1 of page text, page number
+    """
     pages, p_x0, p_x1 = [], [], []
     for p_no, p in bins_x0.groupby("page"):
         border_x0, border_x1 = calc_text_borders(p, bins_x1.loc[bins_x1["page"] == p_no])
@@ -220,6 +303,19 @@ def make_borders_df(bins_x0, bins_x1):
 
 
 def calc_text_borders(bins_x0, bins_x1):
+    """Calculates the left and right border for a single page.
+
+    Parameters
+    ----------
+    bins_x0
+        lines of a page sorted into bins by x0, created by group.group_line_starts_ends
+    bins_x1
+        lines of a page sorted into bins by x1, created by group.group_line_starts_ends
+
+    Returns
+    -------
+        left and right border of page text
+    """    
     df_x0 = bins_x0.copy()
     df_x1 = bins_x1.copy()
 
@@ -235,10 +331,26 @@ def calc_text_borders(bins_x0, bins_x1):
     return (x0, x1)
 
 
-# Returns the mean x0 value for the page middle, used for double paged documents. Also filters out
-# wrong borders, so they won´t be used in the calculation.
 def get_mean_dx(words_df, borders, mode):
+    """Returns the mean distance between the left and right border of the text for all pages.
 
+    This method is used for double paged documents. Also filters out wrong borders
+    so they won't be used in the calculation. Wrong borders can happen in fitz
+    mode because of bad existing ocr.
+
+    Parameters
+    ----------
+    words_df
+        words data frame, returned by make_words_df
+    borders
+        borders data frame, returned by make_borders_df
+    mode
+        mode of operation, fitz or tess
+
+    Returns
+    -------
+        mean dx=x1-x0 for all pages
+    """
     d = 0
     if mode=="fitz":
         d = 15
