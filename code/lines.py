@@ -357,7 +357,7 @@ def get_mean_dx(words_df, borders, mode):
     elif mode=="tess":
         d = 75
 
-    bins_dx = group.group_lines(borders, "dx", d=d)
+    bins_dx = group.group_rows(borders, "dx", d=d)
     bins_dx = bins_dx.sort_values("last_dx_mean", ascending=False)
     pages = bins_dx["count"].sum()
     bins_dx = bins_dx.loc[bins_dx["count"] > 0.25*pages]

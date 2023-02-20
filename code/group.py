@@ -1,3 +1,5 @@
+"""This script contains methods to group lines togetheter based on where they start and where they end."""
+
 import pandas as pd
 import numpy as np
 import re
@@ -6,8 +8,28 @@ import util
 import lines
 
 
-# Sort the lines into bins containing lines with similar values for parameter by
-def group_lines(df, by, mode=None, d=0):
+def group_rows(df, by, mode=None, d=0):
+    """Sorts the rows into bins containing rows with similar values for the specified parameter.
+
+    TODO: write more specifics
+
+    Parameters
+    ----------
+    df
+        data frame 
+    by
+        column of the data frame, based on this parameter the rows are grouped
+    mode, optional
+        mode of operation, fitz or tess, fitz sets d=4, tess sets d=20, by default None
+    d, optional
+        max difference between value of last row(s) and following row to be grouped together, 
+        by default 0
+
+    Returns
+    -------
+        bins data frame, contains the different bins, the indexes of the respective rows that
+        are grouped together in this bin, their quantity
+    """    
 
     if mode=="fitz":
         d = 4
@@ -50,17 +72,30 @@ def group_lines(df, by, mode=None, d=0):
 
 
 def get_line_start_end_bins(lines_df, mode):
+    """Creates bins for the lines based on their x0 and x1 coordinate individually for every page.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame
+    mode
+        mode of operation, fitz or tess
+
+    Returns
+    -------
+        bins created based on similarity of x0, bins created based on similarity of x1, most common quantity of x0 bins per page (2 or 3)
+    """    
     df = lines_df.copy()
 
     bins_x0 = pd.DataFrame(columns=["x0", "lines", "last_x0", "last_x0_mean", "count", "page"])
     bins_x1 = pd.DataFrame(columns=["x1", "lines", "last_x1", "last_x1_mean", "count", "page"])
 
     for page, frame in df.groupby("page"):
-        b = group_lines(frame, "x0", mode)
+        b = group_rows(frame, "x0", mode)
         b["page"] = page
         bins_x0 = pd.concat([bins_x0, b])
 
-        c = group_lines(frame, "x1", mode)
+        c = group_rows(frame, "x1", mode)
         c["page"] = page
         bins_x1 = pd.concat([bins_x1, c])
 
@@ -78,6 +113,24 @@ def get_line_start_end_bins(lines_df, mode):
 
 
 def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
+    """Returns the relevent x0 bins for every page.
+    
+    Relevance is based on the quantity of x0 types for the document and the quantity if lines in a bin.
+    The bin containing lines that start right by the left text border of the page are always labeled as relevant.
+
+    Parameters
+    ----------
+    bins_x0
+        bins x0 data frame
+    x0_n
+        quantity of x0 types (2 or 3), max x0_n bins per page are chosen to be relevant
+    drop_first, optional
+        if True, the first bin on the very left is dropped, used to correct wrong bin creation, by default False
+
+    Returns
+    -------
+        bins x0 data frame
+    """    
 
     bins_x0_rel = pd.DataFrame(columns=bins_x0.columns)
     for p_no, p in bins_x0.groupby("page"):
@@ -96,6 +149,22 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
 
 
 def group_line_starts_ends(lines_df, mode):
+    """Returns the lines sorted by x0 and x1 into bins for every page.
+
+    Only the relevant x0 and x1 bins are returned. For the x1 bins only one bin per page is returned.
+    It is the bin where the lines end right by the right text border.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame
+    mode
+        mode of operation, fitz or tess
+
+    Returns
+    -------
+        relevant bins created based on similarity of x0, relevant bins created based on similarity of x1, most common quantity of x0 bins per page (2 or 3)
+    """    
     df = lines_df.copy()
 
     bins_x0, bins_x1, x0_n = get_line_start_end_bins(df, mode)

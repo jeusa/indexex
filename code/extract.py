@@ -129,8 +129,6 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
     ind_df, p_l, p_g = label.correct_x0_types(df, bins_x0, bins_x1, x0_n, mode)
     ind_df = label.assign_labels(ind_df, x0_n)
     ind_df = label.approve_correction(df, ind_df, p_l)
-
-    ind_df["new_label"] = ind_df["label"]
     ind_df = label.improve_country_classification(ind_df)
 
     ind_df = records.extract_records(ind_df)

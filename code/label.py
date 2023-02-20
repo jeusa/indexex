@@ -1,3 +1,5 @@
+"""This script contains methods to label the individual lines based on where they start and end."""
+
 import pandas as pd
 import numpy as np
 import re
@@ -8,6 +10,25 @@ import group
 
 
 def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
+    """Assigns types for x0 and types for x1 coordinates of individual lines. 
+    
+    Based on the x0 and x1 bins they were sorted into. Types are later used for labeling.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame
+    bins_x0_df
+        bins x0 data frame
+    bins_x1_df
+        bins x1 data frame
+    x0_n
+        quantity of x0 types (2 or 3)
+
+    Returns
+    -------
+        lines data frame with x0 types and x1 types
+    """    
     df = lines_df.copy()
     df["x0_type"] = -1 # valid types: {0, ..., x0_n}
     df["x1_type"] = -1 # valid types: {0,1,2}
@@ -47,8 +68,34 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
     return df
 
 
-# correct x0_type for pages where something went wrong
 def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
+    """Corrects x0 types for the pages where something went wrong.
+
+    The text widths of the pages are compared to determine the pages where something went wrong.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame with x0 types and x1 types
+    bins_x0
+        x0 bins data frame
+    bins_x1
+        _description_
+    x0_n
+        x1 bins data frame
+    mode
+        mode of operation, fitz or tess
+
+    Returns
+    -------
+        lines data frame with corrected x0 types, pages where the text width is smaller than the rest,
+        pages where the text width is larger than the rest
+
+    Raises
+    ------
+    ValueError
+        if mode is neither "fitz" nor "tess"
+    """    
 
     d = 0
     if mode=="fitz":
@@ -74,8 +121,8 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
     for w in range(len(f)):
         p.append((f[w], text_widths.index(f[w]) + start_page)) # add page to strange width
 
-    p_l = [a for w, a in p if w<width_median]
-    p_g = [a for w, a in p if w>width_median]
+    p_l = [a for w, a in p if w<width_median] # pages where the text width is significantly smaller than the median
+    p_g = [a for w, a in p if w>width_median] # pages where the text width is significantly larger than the median
 
     df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
 
@@ -88,8 +135,24 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
     return df, p_l, p_g
 
 
-# approve x0_type correction for pages where the width seemed to small
 def approve_correction(orig_df, cor_df, p_l):
+    """Approves the corrected x0 types or reverses them if after the correction the results worsen.
+
+    Only looks at pages where the text width was smaller than the one of the other pages.
+
+    Parameters
+    ----------
+    orig_df
+        lines df with original x0 types
+    cor_df
+        lines df with corrected x0 types
+    p_l
+        pages, where the text with was smaller than the rest
+
+    Returns
+    -------
+        lines df with x0 types
+    """    
     df = cor_df.copy()
 
     start_counts = []
@@ -109,8 +172,22 @@ def approve_correction(orig_df, cor_df, p_l):
     return cor_df
 
 
-# assign labels to lines based on x0_type and x1_type
 def assign_labels(lines_df, x0_n):
+    """Based on x0 and x1 types of the lines, labels are assigned to each line.
+
+    Labels are: country, start, middle, end
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame with x0 types and x1 types
+    x0_n
+        quantity of x0 types (2 or 3)
+
+    Returns
+    -------
+        lines data frame with labels
+    """    
     df = lines_df.copy()
 
     df["label"] = "other"
@@ -136,8 +213,25 @@ def assign_labels(lines_df, x0_n):
 
 
 def improve_country_classification(lines_df):
+    """Assigns some lines labeled as country to region based on quantity of lower case letters.
+
+    Does not work well for some documents where the ocr is created with tesseract, since tesseract does not
+    always recognice upper and lower cases very well.
+    Also cleans up the country/region text a bit.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame with labels
+
+    Returns
+    -------
+        lines data frame with added new_label column
+    """    
 
     df = lines_df.copy()
+    df["new_label"] = df["label"]
+
     regex_cont = "(?!\s?congo)-{0,2}—?\s?\(?(con\w*)\.?\)?" # regex to filter out "continued" and its variants
 
     for row in df.loc[lines_df["label"] == "country"].iterrows():
