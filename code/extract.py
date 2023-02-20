@@ -1,3 +1,5 @@
+"""This script contains methods to extract the indexes from a single or double paged document."""
+
 import pandas as pd
 import re
 import os
@@ -11,7 +13,34 @@ import date
 
 
 def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove_wrong=True, verbose=True):
+    """Extracts the indexes of all files in a directory and saves the csv files to the specified path.
 
+    Generates one output file containing the extracted indexes for every input file.
+
+    Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
+    Mode tess: Uses the tesseract engine to generate ocr for a pdf or gets a tesseract data frame as input.
+
+    Parameters
+    ----------
+    path_dir
+        directory containing pdf files and/or tesseract data frames as csv
+    output_dir
+        directory where the indexes will be written to
+    mode, optional
+        mode of operation, "fitz" or "tess", if None it will be determined based on file type: pdf->fitz, csv->tess, by default None
+    recursive, optional
+        True if path_dir should be searched for files recursively, if type is integer: how many levels of subdirectories
+        should be searched, by default False
+    remove_wrong, optional
+        True if indexes where no date could be extracted should be removed, by default True
+    verbose, optional
+        print infos, by default True
+
+    Raises
+    ------
+    ValueError
+        if path_dir is not a directory
+    """
     if not os.path.isdir(path_dir):
         raise ValueError(f"{path_dir} is not a directory.")
 
@@ -28,7 +57,46 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
 
 
 def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None):
+    """Extracts and returns the indexes of a single file.
 
+    Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
+    Mode tess: Uses the tesseract engine to generate ocr for a pdf or gets a tesseract data frame as input.
+
+    Parameters
+    ----------
+    path
+        path to file, pdf or tesseract data frame as csv
+    output_dir, optional
+        if specified: directory where the indexes csv file will be written to, by default None
+    mode, optional
+        mode of operation, "fitz" or "tess", if None it will be determined based on file type: pdf->fitz, csv->tess, by default None
+    start_page, optional
+        page from which the extraction should start, by default 1
+    remove_wrong, optional
+        True if indexes where no date could be extracted should be removed, by default True
+    verbose, optional
+        print infos, by default True
+    double_paged, optional
+        if True: document is treated as double paged, if False: document is treated as singe paged, 
+        if None: document will be checked to see if it is single or double paged, by default None
+
+    Returns
+    -------
+        indexes data frame
+
+    Raises
+    ------
+    ValueError
+        if path is not an existing file
+    ValueError
+        if the file type is not supported
+    ValueError
+        if fitz is used with a csv file
+    ValueError
+        if output_dir is not an existing directory
+    ValueError
+        if the mode is neither fitz nor tess
+    """
     if not os.path.isfile(path):
         raise ValueError(f"{path} is not an existing file.")
 
@@ -55,15 +123,33 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
         save_path = os.path.join(output_dir, f_name + f"_{mode}.csv")
 
     if mode=="fitz":
-        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
+        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose)
     elif mode=="tess":
         return extract_indexes_tess(path, file_type=f_suffix, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
     else:
         raise ValueError(f"{mode} is not a supported mode.")
 
 
-def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
+def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True save_to=None):
+    """Extracts and returns the indexes of a single pdf file using existing ocr.
 
+    Parameters
+    ----------
+    pdf_path
+        path to pdf file
+    start_page, optional
+        page from which the extraction should start, by default 1
+    remove_wrong, optional
+        True if indexes where no date could be extracted should be removed, by default True
+    verbose, optional
+        print infos, by default True
+    save_to, optional
+        if specified: path where the indexes csv file will be written to, by default None
+
+    Returns
+    -------
+        indexes data frame
+    """
     pdf_words, pdf_dicts = util.read_pdf(pdf_path, start_page, verbose)
 
     words_df = lines.make_words_df(pdf_words, start_page)
@@ -77,13 +163,43 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
     lines_df = lines.merge_close_lines(lines_df)
     lines_df = lines.remove_useless_lines(lines_df)
 
-    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to)
+    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=None, save_to=save_to)
 
     return ind_df
 
 
 def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
+    """Extracts and returns the indexes of a single pdf file or a tesseract data frame saved as a csv file.
 
+    If the file is a pdf, the tesseract engine is used to generate ocr.
+
+    Parameters
+    ----------
+    file_path
+        path of the file, pdf or tesseract dataframe as csv file
+    file_type, optional
+        pdf or csv, by default "csv"
+    start_page, optional
+        page from which the extraction should start, by default 1
+    remove_wrong, optional
+        True if indexes where no date could be extracted should be removed, by default True
+    verbose, optional
+        print infos, by default True
+    double_paged, optional
+        if True: document is treated as double paged, if False: document is treated as single paged, 
+        if None: document will be checked to see if it is single or double paged, by default None
+    save_to, optional
+        if specified: path where the indexes csv file will be written to, by default None
+
+    Returns
+    -------
+        indexes data frame
+
+    Raises
+    ------
+    ValueError
+        if file_type is not supported
+    """
     file_type = re.sub("\.", "", file_type)
     if file_type == "csv":
         pdf_df = pd.read_csv(file_path)
@@ -101,6 +217,35 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
 
 
 def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None, remove_wrong=False):
+    """Extracts and returns indexes from the words data frame and the lines data frame of a document.
+
+    Extraction works for single paged and double paged documents. In mode fitz, extraction does not work for double paged
+    documents but double paged documents should be identified as such.
+
+    Parameters
+    ----------
+    words_df
+        words data frame, needed for double paged extraction
+    lines_df
+        lines data frame
+    file_name
+        name of the document, used to extract the year from the file_name
+    mode
+        mode of operation, fitz or "tess"
+    verbose, optional
+        print infos, by default True
+    double_paged, optional
+        if True: document is treated as double paged, if False: document is treated as single paged, 
+        if None: document will be checked to see if it is single or double paged, by default None
+    save_to, optional
+        if specified: path where the indexes csv file will be written to, by default None
+    remove_wrong, optional
+        True if indexes where no date could be extracted should be removed, by default True
+
+    Returns
+    -------
+        indexes data frame
+    """    
     if verbose:
         print(f"Starting extraction for {file_name}...")
 
@@ -151,7 +296,27 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
 
 
 def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mode="tess", verbose=True):
+    """Extracts and returns indexes of a double paged document.
 
+    Parameters
+    ----------
+    words_df
+        words data frame
+    borders
+        borders data frame
+    file_name
+        name of the document, used to extract the year from the file_name
+    save_to, optional
+        if specified: path where the indexes csv file will be written to, by default None
+    mode, optional
+        mode of operation, "fitz" or "tess", by default "tess", does not really work in mode "fitz"
+    verbose, optional
+        print infos, by default True
+
+    Returns
+    -------
+        indexes data frame
+    """
     if verbose:
         print("Extracting indexes from document with double-pages.")
 
@@ -198,6 +363,28 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
 
 
 def is_double_paged(words_df, borders, mode):
+    """Determines if a document is double paged.
+
+    A double paged has a gap in the middle, where no words should start.
+
+    Parameters
+    ----------
+    words_df
+        words data frame
+    borders
+        borders data frame
+    mode
+        mode of operation, "fitz" or "tess", by default "tess", does not really work in mode "fitz"
+
+    Returns
+    -------
+        True if document is double paged, else Fals
+
+    Raises
+    ------
+    ValueError
+        if mode is neither fitz nor tess
+    """    
     df = words_df.copy()
 
     m = 0
@@ -229,8 +416,19 @@ def is_double_paged(words_df, borders, mode):
     return False
 
 
-def clean_text(rec_df):
-    df = rec_df.copy()
+def clean_text(ind_df):
+    """Cleans up the index texts a little bit.
+
+    Parameters
+    ----------
+    ind_df
+        indexes data frame
+
+    Returns
+    -------
+        indexes data frame
+    """    
+    df = ind_df.copy()
 
     reg_s = "^[^a-zA-Z0-9]+"
     reg_w = " {2,}"

@@ -20,7 +20,7 @@ def group_rows(df, by, mode=None, d=0):
     by
         column of the data frame, based on this parameter the rows are grouped
     mode, optional
-        mode of operation, fitz or tess, fitz sets d=4, tess sets d=20, by default None
+        mode of operation, "fitz" or "tess", fitz sets d=4, tess sets d=20, by default None
     d, optional
         max difference between value of last row(s) and following row to be grouped together, 
         by default 0
@@ -79,7 +79,7 @@ def get_line_start_end_bins(lines_df, mode):
     lines_df
         lines data frame
     mode
-        mode of operation, fitz or tess
+        mode of operation, "fitz" or "tess"
 
     Returns
     -------
@@ -159,7 +159,7 @@ def group_line_starts_ends(lines_df, mode):
     lines_df
         lines data frame
     mode
-        mode of operation, fitz or tess
+        mode of operation, "fitz" or "tess"
 
     Returns
     -------

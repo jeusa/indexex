@@ -1,3 +1,5 @@
+"""This script contains methods to generate the indexes data frame from the lines data frame."""
+
 import pandas as pd
 import numpy as np
 import re
@@ -8,6 +10,17 @@ import group
 
 
 def extract_records(lines_df):
+    """Extracts the indexes based on the the labeled lines.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame with labeled lines
+
+    Returns
+    -------
+        indexes data frame
+    """    
     df = group_records(lines_df)
 
     texts = []
@@ -37,6 +50,20 @@ def extract_records(lines_df):
     
 
 def group_records(lines_df):
+    """Groups the lines to indexes with their corresponding country (and region).
+
+    Groups indexes based on the label start assigned to the lines (from start to next start).
+    Lines are assigned a record_no. Lines with the same record_no form an index.
+
+    Parameters
+    ----------
+    lines_df
+        lines data frame with labeled lines
+
+    Returns
+    -------
+        lines data frame with index grouping
+    """    
     df = lines_df.copy()
 
     df["country"] = ""

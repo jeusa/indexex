@@ -84,7 +84,7 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
     x0_n
         x1 bins data frame
     mode
-        mode of operation, fitz or tess
+        mode of operation, "fitz" or "tess"
 
     Returns
     -------

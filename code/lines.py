@@ -345,7 +345,7 @@ def get_mean_dx(words_df, borders, mode):
     borders
         borders data frame, returned by make_borders_df
     mode
-        mode of operation, fitz or tess
+        mode of operation, "fitz" or "tess"
 
     Returns
     -------
