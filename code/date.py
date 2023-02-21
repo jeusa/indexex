@@ -1,10 +1,25 @@
+"""This script contains methods concerning the date extraction from the index texts."""
+
 import pandas as pd
 import re
 
 from difflib import get_close_matches
 
 
-def extract_dates(rec_df, file_name):
+def extract_dates(ind_df, file_name):
+    """Extracts the dates from the index texts and normalizes them.
+
+    Parameters
+    ----------
+    ind_df
+        indexes data frame
+    file_name
+        name of the document, used to extract the year from the file_name
+
+    Returns
+    -------
+        indexes data frame with data and year columns
+    """    
     # lax versions
     digit = "[0-9oOIltriSQzZ]"
     big_i = "[I1l]"
@@ -28,7 +43,7 @@ def extract_dates(rec_df, file_name):
     # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
     re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
-    df = rec_df.copy()
+    df = ind_df.copy()
     df["extracted_date"] = ""
     df["extracted_day"] = ""
     df["extracted_month"] = ""
@@ -89,7 +104,21 @@ def extract_dates(rec_df, file_name):
     return df
 
 
-def get_date_type(rec_df):
+def get_date_type(ind_df):
+    """Determines the date type of the document.
+
+    Four types have been identified.
+
+    Parameters
+    ----------
+    ind_df
+        indexes data frame
+
+    Returns
+    -------
+        date type as int, 1 <= date_type <= 4 are valid types,
+        -1 if no date type could be identified
+    """    
     # strict versions
     digit = "[0-9]"
     big_i = "[I1l]"
@@ -113,7 +142,7 @@ def get_date_type(rec_df):
     # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
     re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
-    samp = rec_df.sample(min(max(rec_df.shape[0]//10, 10), rec_df.shape[0]))
+    samp = ind_df.sample(min(max(ind_df.shape[0]//10, 10), ind_df.shape[0]))
     samp["date_type"] = -1
 
     for i, row in samp.iterrows():
@@ -148,8 +177,23 @@ def get_date_type(rec_df):
     return date_type
 
 
-def norm_dates(rec_df, date_type, file_name):
-    df = rec_df.copy()
+def norm_dates(ind_df, date_type, file_name):
+    """Normalizes the dates that have been extracted.
+
+    Parameters
+    ----------
+    ind_df
+        indexes data frame with extracted dates
+    date_type
+        date_type of the document, int, 1 <= date_type <= 4
+    file_name
+        name of the document, used to extract the year from the file_name
+
+    Returns
+    -------
+        indexes data frame with normalized dates
+    """    
+    df = ind_df.copy()
 
     if not "date" in df.columns:
         df.insert(3, "date", "")
@@ -180,7 +224,17 @@ def norm_dates(rec_df, date_type, file_name):
 
 
 def correct_digit_recognition(dig):
+    """Corrects digits where the ocr recognized them as letters.
 
+    Parameters
+    ----------
+    dig
+        str, the digits
+
+    Returns
+    -------
+        str, the corrected digits
+    """
     if type(dig) is str:
         cor = re.sub("[Iiltr]", "1", dig)
         cor = re.sub("[Zz]", "2", cor)
@@ -197,6 +251,23 @@ def correct_digit_recognition(dig):
 
 
 def norm_month(month, date_type, ignore_case=True):
+    """Normalizes the extracted month according to the date type.
+
+    Works for English, Spanish and French months.
+
+    Parameters
+    ----------
+    month
+        str
+    date_type
+        date_type of the document, int, 1 <= date_type <= 4
+    ignore_case, optional
+        if True: upper and lower case of the month will be ignored, by default True
+
+    Returns
+    -------
+        str, normalized month as digit(s) from 1 to 12, None if it could not be normalized
+    """    
     mon_l = list()
     month = str(month)
     month = re.sub("[.,:]", "", month)

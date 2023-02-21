@@ -91,7 +91,7 @@ def ocr(file_path, start_page=1, verbose=True, save_to=None):
     verbose, optional
         print infos, by default True
     save_to, optional
-        path where the tesseract data frame should be saved to, by default None
+        if specified: path where the tesseract data frame should be saved to, by default None
 
     Returns
     -------
@@ -132,12 +132,12 @@ def ocr(file_path, start_page=1, verbose=True, save_to=None):
 
 
 def flatten(t):
-    """Flattens a list of list to a list.
+    """Flattens a list of lists to a single list.
 
     Parameters
     ----------
     t
-        list of list
+        list of lists
 
     Returns
     -------

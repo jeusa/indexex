@@ -11,7 +11,11 @@ import lines
 def group_rows(df, by, mode=None, d=0):
     """Sorts the rows into bins containing rows with similar values for the specified parameter.
 
-    TODO: write more specifics
+    The algorithm iterates through the rows of the given data frame. If a bin exists where the row
+    can be sorted into, it is added to the bin. Otherwise, a new bin is created and the row is added
+    to the new bin. 
+    To determine wheter a row fits into a bin, the mean value of the last two rows that have been added
+    to the bin is compared to the value of the current row.
 
     Parameters
     ----------
@@ -72,7 +76,7 @@ def group_rows(df, by, mode=None, d=0):
 
 
 def get_line_start_end_bins(lines_df, mode):
-    """Creates bins for the lines based on their x0 and x1 coordinate individually for every page.
+    """Creates bins for the lines based on their x0 and x1 coordinates individually for every page.
 
     Parameters
     ----------
@@ -113,9 +117,9 @@ def get_line_start_end_bins(lines_df, mode):
 
 
 def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
-    """Returns the relevent x0 bins for every page.
+    """Returns the relevant x0 bins for every page.
     
-    Relevance is based on the quantity of x0 types for the document and the quantity if lines in a bin.
+    Relevance is based on the quantity of x0 types for the document and the quantity of lines in a bin.
     The bin containing lines that start right by the left text border of the page are always labeled as relevant.
 
     Parameters
@@ -151,7 +155,7 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
 def group_line_starts_ends(lines_df, mode):
     """Returns the lines sorted by x0 and x1 into bins for every page.
 
-    Only the relevant x0 and x1 bins are returned. For the x1 bins only one bin per page is returned.
+    Only the relevant x0 and x1 bins are returned. For the x1 bins, only one bin per page is returned.
     It is the bin where the lines end right by the right text border.
 
     Parameters

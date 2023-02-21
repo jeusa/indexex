@@ -175,7 +175,7 @@ def approve_correction(orig_df, cor_df, p_l):
 def assign_labels(lines_df, x0_n):
     """Based on x0 and x1 types of the lines, labels are assigned to each line.
 
-    Labels are: country, start, middle, end
+    Labels are: country, start, middle, end.
 
     Parameters
     ----------
@@ -213,10 +213,10 @@ def assign_labels(lines_df, x0_n):
 
 
 def improve_country_classification(lines_df):
-    """Assigns some lines labeled as country to region based on quantity of lower case letters.
+    """Changes label country to region where applicable based on quantity of lower case letters.
 
     Does not work well for some documents where the ocr is created with tesseract, since tesseract does not
-    always recognice upper and lower cases very well.
+    always recognize upper and lower cases very well.
     Also cleans up the country/region text a bit.
 
     Parameters

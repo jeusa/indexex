@@ -1,9 +1,17 @@
+"""This script implements the command line tool for the index extraction."""
+
 import argparse
 import os
 
 import extract
 
 def defineArgumentParser():
+    """Defines the arguments of the command line tool.
+
+    Returns
+    -------
+        parser with arguments
+    """    
     parser = argparse.ArgumentParser(description="This tool can be used to extract indexes of legal texts published by the ILO (International Labour Organisation).")
 
     parser.add_argument("input_path", help="path to the file (pdf or tesseract data frame as csv) or directory containing the files")

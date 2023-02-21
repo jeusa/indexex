@@ -11,7 +11,7 @@ import group
 def make_lines_df_from_ocr(pdf_df):
     """Makes a lines data frame from a tesseract data frame.
 
-    The method tries to filter out artifacts that are on the page before the line starts.
+    The method tries to filter out artifacts that are on the page before a line starts.
     Tesseract usually recognizes these artifacts as characters.
 
     Parameters
@@ -191,7 +191,7 @@ def make_lines_df_from_dicts(dicts, page_start=1):
 
 
 def merge_close_lines(lines_df, distance=4):
-    """Merges lines that are close to each other to one line.
+    """Merges lines that are close to each other into one line.
 
     When the y0 coordinate of a line is within the range of the
     y0 coordinate of the previous line, the lines are merged.

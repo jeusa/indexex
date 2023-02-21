@@ -13,9 +13,9 @@ import date
 
 
 def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove_wrong=True, verbose=True):
-    """Extracts the indexes of all files in a directory and saves the csv files to the specified path.
+    """Extracts the indexes of all files in a directory and writes the csv files to the specified path.
 
-    Generates one output file containing the extracted indexes for every input file.
+    Generates one output file containing the extracted indexes for each input file.
 
     Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
     Mode tess: Uses the tesseract engine to generate ocr for a pdf or gets a tesseract data frame as input.
@@ -365,7 +365,7 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
 def is_double_paged(words_df, borders, mode):
     """Determines if a document is double paged.
 
-    A double paged has a gap in the middle, where no words should start.
+    A double paged document has a gap in the middle, where no words should start.
 
     Parameters
     ----------
@@ -383,7 +383,7 @@ def is_double_paged(words_df, borders, mode):
     Raises
     ------
     ValueError
-        if mode is neither fitz nor tess
+        if mode is neither "fitz" nor "tess"
     """    
     df = words_df.copy()
 
