@@ -130,7 +130,7 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
         raise ValueError(f"{mode} is not a supported mode.")
 
 
-def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True save_to=None):
+def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, save_to=None):
     """Extracts and returns the indexes of a single pdf file using existing ocr.
 
     Parameters
