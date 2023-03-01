@@ -142,7 +142,7 @@ def get_date_type(ind_df):
     # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
     re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
-    samp = ind_df.sample(min(max(ind_df.shape[0]//10, 10), ind_df.shape[0]))
+    samp = ind_df.sample(min(max(ind_df.shape[0]//4, 50), ind_df.shape[0]))
     samp["date_type"] = -1
 
     for i, row in samp.iterrows():
