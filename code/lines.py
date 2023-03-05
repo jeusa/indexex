@@ -30,7 +30,9 @@ def make_lines_df_from_ocr(pdf_df):
     df = df.rename(columns={"left": "x0", "top": "y0", "page_num": "page"})
     df["x1"] = df["x0"] + df["width"]
     df["y1"] = df["y0"] + df["height"]
-    reg_art = "^[\W_]*([oeau]{2,})?\s?[\W_]*(?<!\()"    # regex for artifacts
+    
+    arts = "[.,;:'`#\+\-\"„”_ ]"
+    reg_art = "^" + arts + "*([oeau]{2,})?" + arts + "*"   # regex for artifacts
 
     page, lines_text, x0, x1, y0, y1 = [], [], [], [], [], []
     art = []

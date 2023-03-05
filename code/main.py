@@ -21,6 +21,8 @@ def defineArgumentParser():
     parser.add_argument("-p", "--start_page", type=int, help="only works when input path is a file, set the page of the document from which the extraction should start", default=1)
     parser.add_argument('-r', '--recursive', type=int, help='only when input path is a directory, define if path should be searched recursively, optional: how many levels of subdirectories should be searched', nargs='?', default=False, const=True)
     parser.add_argument("-k", "--keep_all", help="indexes found based on line indentation where no date could be found are not removed, default is that they are removed", action="store_true", default=False)
+    parser.add_argument("-c", "--country_centered", help="only works when input path is a file, country headlines in this document are centered", action="store_true", default=False)
+    parser.add_argument("-s", "--start_indented", help="only works when input path is a file, the first line of an index is indented in this document", action="store_true", default=False)
 
     return parser.parse_args()
 
@@ -35,6 +37,6 @@ if __name__=="__main__":
     if os.path.isdir(args.input_path):
         extract.extract_indexes_dir(args.input_path, args.output_dir, verbose=args.verbose, remove_wrong=not args.keep_all, mode=m, recursive=args.recursive)
     elif os.path.isfile(args.input_path):
-        extract.extract_indexes_file(args.input_path, args.output_dir, verbose=args.verbose, start_page=args.start_page, remove_wrong=not args.keep_all, mode=m)
+        extract.extract_indexes_file(args.input_path, args.output_dir, verbose=args.verbose, start_page=args.start_page, remove_wrong=not args.keep_all, mode=m, country_centered=args.country_centered, start_indented=args.start_indented)
     else:
         print("Input path is not valid.")

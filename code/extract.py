@@ -56,7 +56,7 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
         extract_indexes_file(f, output_dir=output_dir, mode=mode, remove_wrong=remove_wrong, verbose=verbose)
 
 
-def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None):
+def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None, country_centered=False, start_indented=False):
     """Extracts and returns the indexes of a single file.
 
     Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
@@ -79,6 +79,10 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
     double_paged, optional
         if True: document is treated as double paged, if False: document is treated as singe paged, 
         if None: document will be checked to see if it is single or double paged, by default None
+    country_centered
+        set True, if the country headlines are centered, by default False
+    start_indented
+        set True, if the first line of every index in this document is indented, by default False
 
     Returns
     -------
@@ -123,14 +127,14 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
         save_path = os.path.join(output_dir, f_name + f"_{mode}.csv")
 
     if mode=="fitz":
-        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose)
+        return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, country_centered=country_centered, start_indented=start_indented)
     elif mode=="tess":
-        return extract_indexes_tess(path, file_type=f_suffix, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged)
+        return extract_indexes_tess(path, file_type=f_suffix, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, country_centered=country_centered, start_indented=start_indented)
     else:
         raise ValueError(f"{mode} is not a supported mode.")
 
 
-def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, save_to=None):
+def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, save_to=None, country_centered=False, start_indented=False):
     """Extracts and returns the indexes of a single pdf file using existing ocr.
 
     Parameters
@@ -145,6 +149,10 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
         print infos, by default True
     save_to, optional
         if specified: path where the indexes csv file will be written to, by default None
+    country_centered
+        set True, if the country headlines are centered, by default False
+    start_indented
+        set True, if the first line of every index in this document is indented, by default False
 
     Returns
     -------
@@ -163,12 +171,12 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
     lines_df = lines.merge_close_lines(lines_df)
     lines_df = lines.remove_useless_lines(lines_df)
 
-    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=None, save_to=save_to)
+    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=None, save_to=save_to, country_centered=country_centered, start_indented=start_indented)
 
     return ind_df
 
 
-def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None):
+def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None, country_centered=False, start_indented=False):
     """Extracts and returns the indexes of a single pdf file or a tesseract data frame saved as a csv file.
 
     If the file is a pdf, the tesseract engine is used to generate ocr.
@@ -190,6 +198,10 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
         if None: document will be checked to see if it is single or double paged, by default None
     save_to, optional
         if specified: path where the indexes csv file will be written to, by default None
+    country_centered
+        set True, if the country headlines are centered, by default False
+    start_indented
+        set True, if the first line of every index in this document is indented, by default False
 
     Returns
     -------
@@ -211,12 +223,12 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
     pdf_df = pdf_df.loc[pdf_df["page_num"] >= start_page]
     lines_df = lines.make_lines_df_from_ocr(pdf_df)
 
-    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(file_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to)
+    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(file_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to, country_centered=country_centered, start_indented=start_indented)
 
     return ind_df
 
 
-def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None, remove_wrong=False):
+def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None, remove_wrong=False, country_centered=False, start_indented=False):
     """Extracts and returns indexes from the words data frame and the lines data frame of a document.
 
     Extraction works for single paged and double paged documents. In mode fitz, extraction does not work for double paged
@@ -241,6 +253,10 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
         if specified: path where the indexes csv file will be written to, by default None
     remove_wrong, optional
         True if indexes where no date could be extracted should be removed, by default True
+    country_centered
+        set True, if the country headlines are centered, by default False
+    start_indented
+        set True, if the first line of every index in this document is indented, by default False
 
     Returns
     -------
@@ -268,15 +284,15 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
                 print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
                 return None
 
-    df = label.assign_types(lines_df, bins_x0, bins_x1, x0_n)
-    df = label.assign_labels(df, x0_n)
+    df = label.assign_types(lines_df, bins_x0, bins_x1, x0_n, country_centered)
+    df = label.assign_labels(df, x0_n, country_centered, start_indented)
 
     ind_df, p_l, p_g = label.correct_x0_types(df, bins_x0, bins_x1, x0_n, mode)
-    ind_df = label.assign_labels(ind_df, x0_n)
+    ind_df = label.assign_labels(ind_df, x0_n, country_centered, start_indented)
     ind_df = label.approve_correction(df, ind_df, p_l)
     ind_df = label.improve_country_classification(ind_df)
 
-    ind_df = records.extract_records(ind_df)
+    ind_df = records.extract_records(ind_df, start_indented)
     ind_df = date.extract_dates(ind_df, file_name)
     ind_df = clean_text(ind_df)
 

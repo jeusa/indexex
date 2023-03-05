@@ -9,7 +9,7 @@ import lines
 import group
 
 
-def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
+def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n, country_centered=False):
     """Assigns types for x0 and types for x1 coordinates of individual lines. 
     
     Based on the x0 and x1 bins they were sorted into. Types are later used for labeling.
@@ -30,11 +30,14 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
         lines data frame with x0 types and x1 types
     """    
     df = lines_df.copy()
-    df["x0_type"] = -1 # valid types: {0, ..., x0_n}
+    df["x0_type"] = -1 # valid types: {0, ..., x0_n, 4}
     df["x1_type"] = -1 # valid types: {0,1,2}
 
     bins_x0 = bins_x0_df.copy()
     bins_x1 = bins_x1_df.copy()
+
+    if country_centered:
+        x0_n = 2
 
     # assign x0_type to lines
     for p_no, p in bins_x0.groupby("page"):
@@ -43,6 +46,11 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
                 df.loc[p.iloc[i]["lines"], "x0_type"] = i
 
     borders = lines.make_borders_df(bins_x0, bins_x1)
+    
+    # assign x0_type 4: lines that do not have a type yet and start in the first half of the text page
+    for i, b in borders.iterrows():
+        text_middle = b["x0"] + b["dx"]/2
+        df.loc[(df["page"]==b["page"]) & (df["x0"]<text_middle) & (df["x0_type"]==-1), "x0_type"] = 4
 
     # assign x1_type to lines
     for p_no, p in df.groupby("page"):
@@ -57,8 +65,9 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n):
                 x1_type = 2 # line ends by the right text border
             else:
                 l_x1 = row["x1"]
-
-                if l_x1 < borders.loc[borders["page"]==p_no]["x0"].values[0] + 0.7*(borders.loc[borders["page"]==p_no]["x1"].values[0] - borders.loc[borders["page"]==p_no]["x0"].values[0]):
+                
+                borders_p =borders.loc[borders["page"]==p_no]
+                if l_x1 < borders_p["x0"].values[0] + 0.7*(borders_p["x1"].values[0] - borders_p["x0"].values[0]):
                     x1_type = 0 # line ends before the first 0.7 text width
                 else:
                     x1_type = 1 # line ends after the first 0.7 text width but before the border
@@ -119,12 +128,12 @@ def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
 
     p = []
     for w in range(len(f)):
-        p.append((f[w], text_widths.index(f[w]) + start_page)) # add page to strange width
+        p.append((f[w], text_widths.index(f[w]) + start_page)) # add page to pages with strange width
 
     p_l = [a for w, a in p if w<width_median] # pages where the text width is significantly smaller than the median
     p_g = [a for w, a in p if w>width_median] # pages where the text width is significantly larger than the median
 
-    df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0), "x0_type"] +=1 # correct wrong x0_type for p_l
+    df.loc[df["page"].isin(p_l) & (df["x0_type"]>=0) & (df["x0_type"] < 4), "x0_type"] +=1 # correct wrong x0_type for p_l
 
     # correct wrong x0_type (and x1_type) for p_g
     bins = group.get_line_start_end_bins(df.loc[df["page"].isin(p_g)], mode)
@@ -172,7 +181,7 @@ def approve_correction(orig_df, cor_df, p_l):
     return cor_df
 
 
-def assign_labels(lines_df, x0_n):
+def assign_labels(lines_df, x0_n, country_centered=False, start_indented=False):
     """Based on x0 and x1 types of the lines, labels are assigned to each line.
 
     Labels are: country, start, middle, end.
@@ -183,6 +192,10 @@ def assign_labels(lines_df, x0_n):
         lines data frame with x0 types and x1 types
     x0_n
         quantity of x0 types (2 or 3)
+    country_centered
+        set True, if the country headlines are centered, by default False
+    start_indented
+        set True, if the first line of every index in this document is indented, by default False
 
     Returns
     -------
@@ -191,23 +204,38 @@ def assign_labels(lines_df, x0_n):
     df = lines_df.copy()
 
     df["label"] = "other"
+    
+    if country_centered | start_indented:
+        x0_n = 2
+    
+    x0_start = 1
+    if x0_n == 2:
+        x0_start = 0
+    
     for index, row in df.iterrows():
         x0_t = row["x0_type"]
         x1_t = row["x1_type"]
+        
+        if country_centered:
+            df.loc[(df["x0_type"]==4) & (df["x1_type"]<2), "label"] = "country"
+        else:
+            if x0_n==2:
+                df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"  
+            elif x0_n==3:
+                df.loc[(df["x0_type"]==0) & (df["x1_type"]<2), "label"] = "country"                
+        
+        if start_indented:
+            df.loc[(df["x0_type"]==1), "label"] = "start"
+            df.loc[(df["x0_type"]==0) & (df["x1_type"]==2), "label"] = "middle"
+            df.loc[(df["x0_type"]==0) & (df["x1_type"]<2), "label"] = "end"
+        else:
+            if x0_n==2:
+                df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]>0), "label"] = "start"
+            elif x0_n==3:
+                df.loc[(df["x0_type"]==x0_start), "label"] = "start"
 
-        x0_start = 1
-        if x0_n == 2:
-            x0_start = 0
-
-        if x0_n==2:
-            df.loc[(df["x0_type"]==0) & (df["x1_type"]==0), "label"] = "country"
-            df.loc[(df["x0_type"]==x0_start) & (df["x1_type"]>0), "label"] = "start"
-        elif x0_n==3:
-            df.loc[(df["x0_type"]==0) & (df["x1_type"]<2), "label"] = "country"
-            df.loc[(df["x0_type"]==x0_start), "label"] = "start"
-
-        df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]==2), "label"] = "middle"
-        df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
+            df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]==2), "label"] = "middle"
+            df.loc[(df["x0_type"]==x0_start+1) & (df["x1_type"]<2), "label"] = "end"
 
     return df
 
@@ -241,12 +269,17 @@ def improve_country_classification(lines_df):
         if re.search("[0-9]{2}", text):
             df.at[row[0], "new_label"] = "start"
             continue
+        
+        if not re.search("[a-zA-Z]{2}", text):
+            df.at[row[0], "new_label"] = "other"
+            continue
 
         if row[1]["new_label"] == "country":
             text = re.sub(regex_cont, "", text, flags=re.IGNORECASE)
             text = re.sub("1and", "land", text)
             text = re.sub("5", "S", text)
-            text = re.sub("[,.:;-]", "", text)
+            text = re.sub("[,.:;`'\"]", " ", text)
+            text = re.sub("  ", " ", text)
             text = text.strip()
 
             df.at[row[0], "line_text"] = text
