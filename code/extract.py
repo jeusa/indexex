@@ -270,7 +270,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
 
     if double_paged:
         if mode=="tess":
-            return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to)
+            return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
         else:
             print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
             return None
@@ -279,7 +279,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
         if is_double_paged(words_df, borders, mode):
 
             if mode=="tess":
-                return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to)
+                return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
             else:
                 print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
                 return None
@@ -311,7 +311,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
     return ind_df
 
 
-def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mode="tess", verbose=True):
+def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mode="tess", verbose=True, remove_wrong=False, country_centered=False, start_indented=False):
     """Extracts and returns indexes of a double paged document.
 
     Parameters
@@ -358,8 +358,8 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
     lines_l = lines.make_lines_df_from_ocr(pdf_l)
     lines_r = lines.make_lines_df_from_ocr(pdf_r)
 
-    ind_l = extract_indexes(None, lines_l, file_name, mode, verbose=False, double_paged=False)
-    ind_r = extract_indexes(None, lines_r, file_name, mode, verbose=False, double_paged=False)
+    ind_l = extract_indexes(None, lines_l, file_name, mode, verbose=False, double_paged=False, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
+    ind_r = extract_indexes(None, lines_r, file_name, mode, verbose=False, double_paged=False, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
 
     idx_s = ind_l.shape[0]
     idx_e = idx_s + ind_r.shape[0]

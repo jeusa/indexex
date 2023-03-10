@@ -79,7 +79,7 @@ def read_pdf(path, start_page=1, verbose=True):
     return pdf_words[start_page-1:], pdf_dicts[start_page-1:]
 
 
-def ocr(file_path, start_page=1, verbose=True, save_to=None):
+def ocr(file_path, start_page=1, verbose=True, save_to=None, tesseract_path=None):
     """Uses tesseract for optical character recognition of the content of a pdf file.
 
     Parameters
@@ -91,12 +91,16 @@ def ocr(file_path, start_page=1, verbose=True, save_to=None):
     verbose, optional
         print infos, by default True
     save_to, optional
-        if specified: path where the tesseract data frame should be saved to, by default None
+        if specified: directory where the tesseract data frame should be saved to, by default None
+    TODO
 
     Returns
     -------
         tesseract data frame
     """    
+    if tesseract_path:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
     if verbose:
         print(f"Converting pdf pages for {file_path} to images.")
 
