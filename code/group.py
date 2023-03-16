@@ -153,7 +153,7 @@ def get_relevant_x0_bins(bins_x0, x0_n, drop_first=False):
 
 
 def group_line_starts_ends(lines_df, mode):
-    """Returns the lines sorted by x0 and x1 into bins for every page.
+    """Returns the lines sorted into bins based on x0 and x1 coordinates for every page.
 
     Only the relevant x0 and x1 bins are returned. For the x1 bins, only one bin per page is returned.
     It is the bin where the lines end right by the right text border.
