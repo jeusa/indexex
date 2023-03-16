@@ -92,7 +92,8 @@ def ocr(file_path, start_page=1, verbose=True, save_to=None, tesseract_path=None
         print infos, by default True
     save_to, optional
         if specified: directory where the tesseract data frame should be saved to, by default None
-    TODO
+    tesseract_path, optional
+        define path to tesseract executable, by default None
 
     Returns
     -------

@@ -23,6 +23,7 @@ def defineArgumentParser():
     parser.add_argument("-k", "--keep_all", help="indexes found based on line indentation where no date could be found are not removed, default is that they are removed", action="store_true", default=False)
     parser.add_argument("-c", "--country_centered", help="only works when input path is a file, country headlines in this document are centered", action="store_true", default=False)
     parser.add_argument("-s", "--start_indented", help="only works when input path is a file, the first line of an index is indented in this document", action="store_true", default=False)
+    parser.add_argument("-t", "--tesseract_path", help="define path to tesseract executable")
 
     return parser.parse_args()
 
@@ -35,8 +36,8 @@ if __name__=="__main__":
         m = str.lower(args.mode)
 
     if os.path.isdir(args.input_path):
-        extract.extract_indexes_dir(args.input_path, args.output_dir, verbose=args.verbose, remove_wrong=not args.keep_all, mode=m, recursive=args.recursive)
+        extract.extract_indexes_dir(args.input_path, args.output_dir, verbose=args.verbose, remove_wrong=not args.keep_all, mode=m, recursive=args.recursive, tesseract_path=args.tesseract_path)
     elif os.path.isfile(args.input_path):
-        extract.extract_indexes_file(args.input_path, args.output_dir, verbose=args.verbose, start_page=args.start_page, remove_wrong=not args.keep_all, mode=m, country_centered=args.country_centered, start_indented=args.start_indented)
+        extract.extract_indexes_file(args.input_path, args.output_dir, verbose=args.verbose, start_page=args.start_page, remove_wrong=not args.keep_all, mode=m, country_centered=args.country_centered, start_indented=args.start_indented, tesseract_path=args.tesseract_path)
     else:
         print("Input path is not valid.")

@@ -12,7 +12,7 @@ import records
 import date
 
 
-def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove_wrong=True, verbose=True):
+def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove_wrong=True, verbose=True, tesseract_path=None):
     """Extracts the indexes of all files in a directory and writes the csv files to the specified path.
 
     Generates one output file containing the extracted indexes for each input file.
@@ -35,6 +35,8 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
         True if indexes where no date could be extracted should be removed, by default True
     verbose, optional
         print infos, by default True
+    tesseract_path, optional
+        define path to tesseract executable, by default None
 
     Raises
     ------
@@ -53,10 +55,10 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
         files += util.list_files(path_dir, recursive=recursive, suffix=s)
 
     for f in files:
-        extract_indexes_file(f, output_dir=output_dir, mode=mode, remove_wrong=remove_wrong, verbose=verbose)
+        extract_indexes_file(f, output_dir=output_dir, mode=mode, remove_wrong=remove_wrong, verbose=verbose, tesseract_path=tesseract_path)
 
 
-def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None, country_centered=False, start_indented=False):
+def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None, country_centered=False, start_indented=False, tesseract_path=None):
     """Extracts and returns the indexes of a single file.
 
     Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
@@ -83,6 +85,8 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
         set True, if the country headlines are centered, by default False
     start_indented
         set True, if the first line of every index in this document is indented, by default False
+    tesseract_path, optional
+        define path to tesseract executable, by default None
 
     Returns
     -------
@@ -129,7 +133,7 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
     if mode=="fitz":
         return extract_indexes_pdf(path, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, country_centered=country_centered, start_indented=start_indented)
     elif mode=="tess":
-        return extract_indexes_tess(path, file_type=f_suffix, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, country_centered=country_centered, start_indented=start_indented)
+        return extract_indexes_tess(path, file_type=f_suffix, start_page=start_page, save_to=save_path, remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, country_centered=country_centered, start_indented=start_indented, tesseract_path=tesseract_path)
     else:
         raise ValueError(f"{mode} is not a supported mode.")
 
@@ -176,7 +180,7 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
     return ind_df
 
 
-def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None, country_centered=False, start_indented=False):
+def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None, country_centered=False, start_indented=False, tesseract_path=None):
     """Extracts and returns the indexes of a single pdf file or a tesseract data frame saved as a csv file.
 
     If the file is a pdf, the tesseract engine is used to generate ocr.
@@ -202,6 +206,8 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
         set True, if the country headlines are centered, by default False
     start_indented
         set True, if the first line of every index in this document is indented, by default False
+    tesseract_path, optional
+        define path to tesseract executable, by default None
 
     Returns
     -------
@@ -216,7 +222,7 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
     if file_type == "csv":
         pdf_df = pd.read_csv(file_path)
     elif file_type == "pdf":
-        pdf_df = util.ocr(file_path, verbose=verbose)
+        pdf_df = util.ocr(file_path, verbose=verbose, tesseract_path=tesseract_path)
     else:
         raise ValueError(f"{file_type} is not a supported file type.")
 
