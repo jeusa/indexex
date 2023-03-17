@@ -10,14 +10,14 @@ import group
 
 
 def extract_records(lines_df, start_indented=False):
-    """Extracts the indexes based on the the labeled lines.
+    """Extracts the records based on the the labeled lines.
 
     Parameters
     ----------
     lines_df
         lines data frame with labeled lines
     start_indented
-        set True, if the first line of every index in this document is indented, by default False
+        set True, if the first line of every record in this document is indented, by default False
 
     Returns
     -------
@@ -70,21 +70,21 @@ def merge_groups(lines_df):
     
 
 def group_records(lines_df, start_indented=False):
-    """Groups the lines to indexes with their corresponding country (and region).
+    """Groups the lines to records with their corresponding country (and region).
 
-    Groups indexes based on the label start assigned to the lines (from start to next start).
-    Lines are assigned a record_no. Lines with the same record_no form an index.
+    Groups records based on the label start assigned to the lines (from start to next start).
+    Lines are assigned a record_no. Lines with the same record_no form an record.
 
     Parameters
     ----------
     lines_df
         lines data frame with labeled lines
     start_indented
-        set True, if the first line of every index in this document is indented, by default False
+        set True, if the first line of every record in this document is indented, by default False
 
     Returns
     -------
-        lines data frame with index grouping
+        lines data frame with record grouping
     """    
     df = lines_df.copy()
 

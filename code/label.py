@@ -80,7 +80,7 @@ def assign_types(lines_df, bins_x0_df, bins_x1_df, x0_n, country_centered=False)
 def correct_x0_types(lines_df, bins_x0, bins_x1, x0_n, mode):
     """Corrects x0 types for the pages where something went wrong.
 
-    The text widths of the pages are compared to determine the pages where something went wrong.
+    The text widths of the pages are compared to determine the pages where something went wrong. This can happen if there is no country name on a page for example.
 
     Parameters
     ----------
