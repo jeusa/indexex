@@ -1,4 +1,4 @@
-"""This script contains methods to extract the indexes from a single or double paged document."""
+"""This script contains methods to extract the index from a single or double paged document."""
 
 import pandas as pd
 import re
@@ -13,9 +13,9 @@ import date
 
 
 def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove_wrong=True, verbose=True, tesseract_path=None):
-    """Extracts the indexes of all files in a directory and writes the csv files to the specified path.
+    """Extracts the index of all files in a directory and writes the csv files to the specified path.
 
-    Generates one output file containing the extracted indexes for each input file.
+    Generates one output file containing the extracted index for each input file.
 
     Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
     Mode tess: Uses the tesseract engine to generate ocr for a pdf or gets a tesseract data frame as input.
@@ -25,14 +25,14 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
     path_dir
         directory containing pdf files and/or tesseract data frames as csv
     output_dir
-        directory where the indexes will be written to
+        directory where the index will be written to
     mode, optional
         mode of operation, "fitz" or "tess", if None it will be determined based on file type: pdf->fitz, csv->tess, by default None
     recursive, optional
         True if path_dir should be searched for files recursively, if type is integer: how many levels of subdirectories
         should be searched, by default False
     remove_wrong, optional
-        True if indexes where no date could be extracted should be removed, by default True
+        True if index where no date could be extracted should be removed, by default True
     verbose, optional
         print infos, by default True
     tesseract_path, optional
@@ -59,7 +59,7 @@ def extract_indexes_dir(path_dir, output_dir, mode=None, recursive=False, remove
 
 
 def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_wrong=True, verbose=True, double_paged=None, country_centered=False, start_indented=False, tesseract_path=None):
-    """Extracts and returns the indexes of a single file.
+    """Extracts and returns the index of a single file.
 
     Mode fitz: Uses existing ocr of the pdf files. Does not work with double paged documents. Input must be pdf.
     Mode tess: Uses the tesseract engine to generate ocr for a pdf or gets a tesseract data frame as input.
@@ -69,13 +69,13 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
     path
         path to file, pdf or tesseract data frame as csv
     output_dir, optional
-        if specified: directory where the indexes csv file will be written to, by default None
+        if specified: directory where the index csv file will be written to, by default None
     mode, optional
         mode of operation, "fitz" or "tess", if None it will be determined based on file type: pdf->fitz, csv->tess, by default None
     start_page, optional
         page from which the extraction should start, by default 1
     remove_wrong, optional
-        True if indexes where no date could be extracted should be removed, by default True
+        True if index where no date could be extracted should be removed, by default True
     verbose, optional
         print infos, by default True
     double_paged, optional
@@ -90,7 +90,7 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
 
     Returns
     -------
-        indexes data frame
+        index data frame
 
     Raises
     ------
@@ -138,8 +138,8 @@ def extract_indexes_file(path, output_dir=None, mode=None, start_page=1, remove_
         raise ValueError(f"{mode} is not a supported mode.")
 
 
-def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True, save_to=None, country_centered=False, start_indented=False):
-    """Extracts and returns the indexes of a single pdf file using existing ocr.
+def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=False, verbose=True, save_to=None, country_centered=False, start_indented=False, date_extraction=True):
+    """Extracts and returns the index of a single pdf file using existing ocr.
 
     Parameters
     ----------
@@ -148,11 +148,11 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
     start_page, optional
         page from which the extraction should start, by default 1
     remove_wrong, optional
-        True if indexes where no date could be extracted should be removed, by default True
+        True if index where no date could be extracted should be removed, by default True
     verbose, optional
         print infos, by default True
     save_to, optional
-        if specified: path where the indexes csv file will be written to, by default None
+        if specified: path where the index csv file will be written to, by default None
     country_centered
         set True, if the country headlines are centered, by default False
     start_indented
@@ -160,7 +160,7 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
 
     Returns
     -------
-        indexes data frame
+        index data frame
     """
     pdf_words, pdf_dicts = util.read_pdf(pdf_path, start_page, verbose)
 
@@ -175,13 +175,13 @@ def extract_indexes_pdf(pdf_path, start_page=1, remove_wrong=True, verbose=True,
     lines_df = lines.merge_close_lines(lines_df)
     lines_df = lines.remove_useless_lines(lines_df)
 
-    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=None, save_to=save_to, country_centered=country_centered, start_indented=start_indented)
+    ind_df = extract_indexes(words_df, lines_df, file_name=os.path.basename(pdf_path), mode="fitz", remove_wrong=remove_wrong, verbose=verbose, double_paged=None, save_to=save_to, country_centered=country_centered, start_indented=start_indented, date_extraction=date_extraction)
 
     return ind_df
 
 
-def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=True, verbose=True, double_paged=None, save_to=None, country_centered=False, start_indented=False, tesseract_path=None):
-    """Extracts and returns the indexes of a single pdf file or a tesseract data frame saved as a csv file.
+def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=False, verbose=True, double_paged=None, save_to=None, country_centered=False, start_indented=False, tesseract_path=None, date_extraction=True):
+    """Extracts and returns the index of a single pdf file or a tesseract data frame saved as a csv file.
 
     If the file is a pdf, the tesseract engine is used to generate ocr.
 
@@ -194,14 +194,14 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
     start_page, optional
         page from which the extraction should start, by default 1
     remove_wrong, optional
-        True if indexes where no date could be extracted should be removed, by default True
+        True if index where no date could be extracted should be removed, by default True
     verbose, optional
         print infos, by default True
     double_paged, optional
         if True: document is treated as double paged, if False: document is treated as single paged, 
         if None: document will be checked to see if it is single or double paged, by default None
     save_to, optional
-        if specified: path where the indexes csv file will be written to, by default None
+        if specified: path where the index csv file will be written to, by default None
     country_centered
         set True, if the country headlines are centered, by default False
     start_indented
@@ -211,7 +211,7 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
 
     Returns
     -------
-        indexes data frame
+        index data frame
 
     Raises
     ------
@@ -229,13 +229,13 @@ def extract_indexes_tess(file_path, file_type="csv", start_page=1, remove_wrong=
     pdf_df = pdf_df.loc[pdf_df["page_num"] >= start_page]
     lines_df = lines.make_lines_df_from_ocr(pdf_df)
 
-    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(file_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to, country_centered=country_centered, start_indented=start_indented)
+    ind_df = extract_indexes(pdf_df, lines_df, file_name=os.path.basename(file_path), mode="tess", remove_wrong=remove_wrong, verbose=verbose, double_paged=double_paged, save_to=save_to, country_centered=country_centered, start_indented=start_indented, date_extraction=date_extraction)
 
     return ind_df
 
 
-def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None, remove_wrong=False, country_centered=False, start_indented=False):
-    """Extracts and returns indexes from the words data frame and the lines data frame of a document.
+def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_paged=None, save_to=None, remove_wrong=False, country_centered=False, start_indented=False, date_extraction=True):
+    """Extracts and returns index from the words data frame and the lines data frame of a document.
 
     Extraction works for single paged and double paged documents. In mode fitz, extraction does not work for double paged
     documents but double paged documents should be identified as such.
@@ -256,9 +256,9 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
         if True: document is treated as double paged, if False: document is treated as single paged, 
         if None: document will be checked to see if it is single or double paged, by default None
     save_to, optional
-        if specified: path where the indexes csv file will be written to, by default None
+        if specified: path where the index csv file will be written to, by default None
     remove_wrong, optional
-        True if indexes where no date could be extracted should be removed, by default True
+        True if index where no date could be extracted should be removed, by default True
     country_centered
         set True, if the country headlines are centered, by default False
     start_indented
@@ -266,7 +266,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
 
     Returns
     -------
-        indexes data frame
+        index data frame
     """    
     if verbose:
         print(f"Starting extraction for {file_name}...")
@@ -276,7 +276,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
 
     if double_paged:
         if mode=="tess":
-            return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
+            return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented, date_extraction=date_extraction)
         else:
             print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
             return None
@@ -285,7 +285,7 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
         if is_double_paged(words_df, borders, mode):
 
             if mode=="tess":
-                return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
+                return extract_double_paged_indexes(words_df, borders, file_name, verbose=verbose, save_to=save_to, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented, date_extraction=date_extraction)
             else:
                 print("Extraction for double paged documents only works in mode 'tess'. Extraction failed.")
                 return None
@@ -299,10 +299,13 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
     ind_df = label.improve_country_classification(ind_df)
 
     ind_df = records.extract_records(ind_df, start_indented)
-    ind_df = date.extract_dates(ind_df, file_name)
+
+    if date_extraction:
+        ind_df = date.extract_dates(ind_df, file_name)
+
     ind_df = clean_text(ind_df)
 
-    if remove_wrong:
+    if remove_wrong & date_extraction:
         ind_df = ind_df.loc[ind_df["extracted_date"]!=""]
 
     if verbose:
@@ -312,13 +315,13 @@ def extract_indexes(words_df, lines_df, file_name, mode, verbose=True, double_pa
         ind_df.to_csv(save_to, index=False)
 
         if verbose:
-            print(f"Saved extracted indexes to {save_to}.")
+            print(f"Saved extracted index to {save_to}.")
 
     return ind_df
 
 
-def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mode="tess", verbose=True, remove_wrong=False, country_centered=False, start_indented=False):
-    """Extracts and returns indexes of a double paged document.
+def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mode="tess", verbose=True, remove_wrong=False, country_centered=False, start_indented=False, date_extraction=True):
+    """Extracts and returns index of a double paged document.
 
     Parameters
     ----------
@@ -329,7 +332,7 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
     file_name
         name of the document, used to extract the year from the file_name
     save_to, optional
-        if specified: path where the indexes csv file will be written to, by default None
+        if specified: path where the index csv file will be written to, by default None
     mode, optional
         mode of operation, "fitz" or "tess", by default "tess", does not really work in mode "fitz"
     verbose, optional
@@ -337,10 +340,10 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
 
     Returns
     -------
-        indexes data frame
+        index data frame
     """
     if verbose:
-        print("Extracting indexes from document with double-pages.")
+        print("Extracting index from document with double-pages.")
 
     df = words_df.copy()
     pdf_l = pd.DataFrame()
@@ -364,8 +367,8 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
     lines_l = lines.make_lines_df_from_ocr(pdf_l)
     lines_r = lines.make_lines_df_from_ocr(pdf_r)
 
-    ind_l = extract_indexes(None, lines_l, file_name, mode, verbose=False, double_paged=False, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
-    ind_r = extract_indexes(None, lines_r, file_name, mode, verbose=False, double_paged=False, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented)
+    ind_l = extract_indexes(None, lines_l, file_name, mode, verbose=False, double_paged=False, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented, date_extraction=date_extraction)
+    ind_r = extract_indexes(None, lines_r, file_name, mode, verbose=False, double_paged=False, remove_wrong=remove_wrong, country_centered=country_centered, start_indented=start_indented, date_extraction=date_extraction)
 
     idx_s = ind_l.shape[0]
     idx_e = idx_s + ind_r.shape[0]
@@ -379,7 +382,7 @@ def extract_double_paged_indexes(words_df, borders, file_name, save_to=None, mod
         ind_df.to_csv(save_to, index=False)
 
         if verbose:
-            print(f"Saved extracted indexes to {save_to}.")
+            print(f"Saved extracted index to {save_to}.")
 
     return ind_df
 
@@ -444,11 +447,11 @@ def clean_text(ind_df):
     Parameters
     ----------
     ind_df
-        indexes data frame
+        index data frame
 
     Returns
     -------
-        indexes data frame
+        index data frame
     """    
     df = ind_df.copy()
 

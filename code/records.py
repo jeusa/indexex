@@ -1,4 +1,4 @@
-"""This script contains methods to generate the indexes data frame from the lines data frame."""
+"""This script contains methods to generate the index data frame from the lines data frame."""
 
 import pandas as pd
 import numpy as np
@@ -21,7 +21,7 @@ def extract_records(lines_df, start_indented=False):
 
     Returns
     -------
-        indexes data frame
+        index data frame
     """    
     df = group_records(lines_df, start_indented)
     rec = merge_groups(df)
@@ -39,7 +39,7 @@ def merge_groups(lines_df):
 
     Returns
     -------
-        indexes data frame
+        index data frame
     """    
     df = lines_df.copy()
 

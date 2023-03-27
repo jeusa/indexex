@@ -2,24 +2,54 @@
 
 import pandas as pd
 import re
+import datetime
 
 from difflib import get_close_matches
 
 
 def extract_dates(ind_df, file_name):
-    """Extracts the dates from the index texts and normalizes them.
+    """Extracts dates and years from the texts and normalizes the dates to format d.m..
 
     Parameters
     ----------
     ind_df
-        indexes data frame
+        index data frame
     file_name
         name of the document, used to extract the year from the file_name
 
     Returns
     -------
-        indexes data frame with data and year columns
+        index data frame with date and year columns
     """    
+    dt = get_date_type(ind_df)
+    df = extract_dates_of_type(ind_df, dt)
+    df = norm_dates(df, dt, file_name)
+    df = df.drop(columns=["extracted_day", "extracted_month", "extracted_year"])
+
+    return df
+
+
+def extract_dates_of_type(ind_df, date_type):
+    """Extracts the dates of the specified type from the texts.
+
+    Parameters
+    ----------
+    ind_df
+        index data frame
+    date_type
+        date_type of the document, int, 1 <= date_type <= 4
+
+    Returns
+    -------
+        index data frame with extracted dates
+    """
+    df = ind_df.copy()
+    df["extracted_date"] = ""
+    df["extracted_day"] = ""
+    df["extracted_month"] = ""
+    df["extracted_year"] = ""
+    df["full_text"] = df["text"]
+
     # lax versions
     digit = "[0-9oOIltriSQzZ]"
     big_i = "[I1l]"
@@ -29,7 +59,8 @@ def extract_dates(ind_df, file_name):
     dayth = day + "(st|nd|rd|th)?" # 4th | 31st
     month_short = "([A-Za-zé]{3,4}[.:,]?)" # Dec. | June | Sept.
     month_long = "([A-Za-zé]{3,9})" # February
-    year = "(" + one + "9"  + digit + "{2})"
+    #year = "(" + one + "9"  + digit + "{2})" # too strict?
+    year = "(" + digit + "{4})"
 
     # in the beginning, example: Nov. 4 | July 25th
     re_d1 = "^" + month_short + " " + dayth
@@ -43,35 +74,27 @@ def extract_dates(ind_df, file_name):
     # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
     re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
-    df = ind_df.copy()
-    df["extracted_date"] = ""
-    df["extracted_day"] = ""
-    df["extracted_month"] = ""
-    df["extracted_year"] = ""
-    df["full_text"] = df["text"]
-
-    dt = get_date_type(df)
     re_d = None
     day_g = 0
     month_g = 0
     year_g = 0
 
-    if dt > -1:
-        if dt==1:
+    if date_type > -1:
+        if date_type == 1:
             re_d = re_d1
             day_g = 2
             month_g = 1
-        elif dt==2:
+        elif date_type == 2:
             re_d = re_d2
             day_g = 1
             month_g = 2
             year_g = 3
-        elif dt==3:
+        elif date_type == 3:
             re_d = re_d3
             day_g = 1
             month_g = 3
             year_g = 4
-        elif dt==4:
+        elif date_type == 4:
             re_d = re_d4
             day_g = 1
             month_g = 3
@@ -82,9 +105,9 @@ def extract_dates(ind_df, file_name):
             d = None
             #text = re.sub("[,.]", "", text)
 
-            if dt != 3:
+            if date_type != 3:
                 d = re.search(re_d, text)
-            if dt == 3:
+            if date_type == 3:
                 for m in re.finditer(re_d, text):
                     d = m
 
@@ -97,11 +120,9 @@ def extract_dates(ind_df, file_name):
                     df.loc[i, "extracted_year"] = d.group(year_g)
 
                 df.loc[i, "text"] = re.sub(re_d, "", row["text"])
-
-    df = norm_dates(df, dt, file_name)
-    df = df.drop(columns=["extracted_day", "extracted_month", "extracted_year"])
-
+    
     return df
+
 
 
 def get_date_type(ind_df):
@@ -112,13 +133,18 @@ def get_date_type(ind_df):
     Parameters
     ----------
     ind_df
-        indexes data frame
+        index data frame
 
     Returns
     -------
         date type as int, 1 <= date_type <= 4 are valid types,
         -1 if no date type could be identified
     """    
+
+    df = ind_df.copy()
+    if not "full_text" in df.columns:
+        df["full_text"] = df["text"]
+
     # strict versions
     digit = "[0-9]"
     big_i = "[I1l]"
@@ -142,7 +168,7 @@ def get_date_type(ind_df):
     # in the beginning, example: 16 Dec. 1965 | 7 May, 1988 | 1st June
     re_d4 = "^" + dayth + " " + month_long + "[,.:]{0,2}( " + year + ")?"
 
-    samp = ind_df.sample(min(max(ind_df.shape[0]//4, 50), ind_df.shape[0]))
+    samp = df.sample(min(max(df.shape[0]//4, 50), df.shape[0]))
     samp["date_type"] = -1
 
     for i, row in samp.iterrows():
@@ -183,7 +209,7 @@ def norm_dates(ind_df, date_type, file_name):
     Parameters
     ----------
     ind_df
-        indexes data frame with extracted dates
+        index data frame with extracted dates
     date_type
         date_type of the document, int, 1 <= date_type <= 4
     file_name
@@ -191,9 +217,12 @@ def norm_dates(ind_df, date_type, file_name):
 
     Returns
     -------
-        indexes data frame with normalized dates
+        index data frame with normalized dates
     """    
     df = ind_df.copy()
+
+    cur_year = datetime.date.today().year
+    file_year = re.search("\d{4}", file_name)
 
     if not "date" in df.columns:
         df.insert(3, "date", "")
@@ -212,10 +241,16 @@ def norm_dates(ind_df, date_type, file_name):
         month = norm_month(mo,date_type)
 
         if month != None:
+
+            if year:
+                if (int(year) > cur_year):
+                    if file_year != None:
+                        year = file_year.group()[0] + year[1:]
+                    else:
+                        year = "1" + year[1:]
+
             df.loc[i, "year"] = year
             df.loc[i, "date"] = f"{day}.{month}."
-
-    file_year = re.search("\d{4}", file_name)
 
     if file_year != None:
         df.loc[(df["date"]!="") & (df["year"]==""), "year"] = file_year.group()
