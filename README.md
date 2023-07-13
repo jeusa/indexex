@@ -8,13 +8,16 @@ University of Bremen
 This tool can be used to extract indexes of legal texts published by the International Labour Organisation. See *Documentation_Indexex.odt* for more information about how indexex works.
 
 **Usage**:  
+
 `main.py [-h] [-v] [-m MODE] [-p START_PAGE] [-r [RECURSIVE]] [-k] [-c] [-s] [-t TESSERACT_PATH] input_path output_dir`
 
 **Positional arguments:**  
+
   `input_path`            : path to the file (pdf or tesseract data frame as csv) or directory containing the files  
   `output_dir`            : path to the directory where the extracted indexes will be written to  
 
 **Optional arguments:**  
+
   `-h, --help`            : show this help message and exit  
   `-v, --verbose`         : print infos during extraction  
   `-m MODE, --mode MODE`  : define mode to be used to read the file, FITZ: reads a pdf which has ocr imbedded, TESS: uses the tesseract ocr engine to create new ocr for a pdf or the input file is a csv file containing a tesseract data frame  
